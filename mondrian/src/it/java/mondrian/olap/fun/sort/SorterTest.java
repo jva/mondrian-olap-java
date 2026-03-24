@@ -69,6 +69,7 @@ public class SorterTest extends TestCase {
     when( evaluator.getQuery() ).thenReturn( query );
     when( query.getStatement() ).thenReturn( statement );
     when( statement.getCurrentExecution() ).thenReturn( execution );
+    when( execution.getCheckCancelOrTimeoutInterval() ).thenReturn( 1 );
   }
 
   // tuple sort paths:

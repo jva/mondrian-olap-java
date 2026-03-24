@@ -11,6 +11,7 @@
   import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import mondrian.server.Execution;
 import mondrian.test.PropertyRestoringTestCase;
@@ -20,42 +21,42 @@ import mondrian.test.PropertyRestoringTestCase;
 
     public void testCheckCancelOrTimeoutWithIntExecution() {
       int currentIteration = 10;
-      propSaver.set(propSaver.properties.CheckCancelOrTimeoutInterval, 1);
+      when(excMock.getCheckCancelOrTimeoutInterval()).thenReturn(1);
       CancellationChecker.checkCancelOrTimeout(currentIteration, excMock);
       verify(excMock).checkCancelOrTimeout();
     }
 
     public void testCheckCancelOrTimeoutWithLongExecution() {
       long currentIteration = 10L;
-      propSaver.set(propSaver.properties.CheckCancelOrTimeoutInterval, 1);
+      when(excMock.getCheckCancelOrTimeoutInterval()).thenReturn(1);
       CancellationChecker.checkCancelOrTimeout(currentIteration, excMock);
       verify(excMock).checkCancelOrTimeout();
     }
 
     public void testCheckCancelOrTimeoutLongMoreThanIntExecution() {
       long currentIteration = 2147483648L;
-      propSaver.set(propSaver.properties.CheckCancelOrTimeoutInterval, 1);
+      when(excMock.getCheckCancelOrTimeoutInterval()).thenReturn(1);
       CancellationChecker.checkCancelOrTimeout(currentIteration, excMock);
       verify(excMock).checkCancelOrTimeout();
     }
 
     public void testCheckCancelOrTimeoutMaxLongExecution() {
       long currentIteration = 9223372036854775807L;
-      propSaver.set(propSaver.properties.CheckCancelOrTimeoutInterval, 1);
+      when(excMock.getCheckCancelOrTimeoutInterval()).thenReturn(1);
       CancellationChecker.checkCancelOrTimeout(currentIteration, excMock);
       verify(excMock).checkCancelOrTimeout();
     }
 
     public void testCheckCancelOrTimeoutNoExecution_IntervalZero() {
       int currentIteration = 10;
-      propSaver.set(propSaver.properties.CheckCancelOrTimeoutInterval, 0);
+      when(excMock.getCheckCancelOrTimeoutInterval()).thenReturn(0);
       CancellationChecker.checkCancelOrTimeout(currentIteration, excMock);
       verify(excMock, never()).checkCancelOrTimeout();
     }
 
     public void testCheckCancelOrTimeoutNoExecutionEvenIntervalOddIteration() {
       int currentIteration = 3;
-      propSaver.set(propSaver.properties.CheckCancelOrTimeoutInterval, 10);
+      when(excMock.getCheckCancelOrTimeoutInterval()).thenReturn(10);
       CancellationChecker.checkCancelOrTimeout(currentIteration, excMock);
       verify(excMock, never()).checkCancelOrTimeout();
     }

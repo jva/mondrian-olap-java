@@ -347,6 +347,7 @@
           <includes>
             <include>Main.java</include>
           </includes>
+          <argLine>${maven-failsafe-plugin.argLine}</argLine>
           <systemPropertyVariables>
             <mondrian.foodmart.jdbcURL>${mondrian.foodmart.jdbcURL}</mondrian.foodmart.jdbcURL>
             <mondrian.foodmart.jdbcUser>${mondrian.foodmart.jdbcUser}</mondrian.foodmart.jdbcUser>

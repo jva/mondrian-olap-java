@@ -9,8 +9,8 @@ Mark methods with `[x]` when migrated. Add the `# Java: Class#method` tag in the
 
 File: `mondrian/calc/impl/ArrayTupleListTest.java`
 
-- [ ] `testGrowListBeyondInitialCapacity` (line 26)
-- [ ] `testAttemptToGrowBeyondResultLimit` (line 38)
+- [x] `testGrowListBeyondInitialCapacity` (line 26)
+- [x] `testAttemptToGrowBeyondResultLimit` (line 38)
 
 ## ConstantCalcTest (2)
 

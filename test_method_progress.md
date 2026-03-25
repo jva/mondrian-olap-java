@@ -931,12 +931,12 @@ File: `mondrian/olap/fun/SortTest.java`
 
 File: `mondrian/olap/fun/UnionFunDefTest.java`
 
-- [ ] `testMondrian2250` (line 49)
-- [ ] `testArity4TupleUnion` (line 121)
-- [ ] `testArity5TupleUnion` (line 142)
-- [ ] `testArity5TupleUnionAll` (line 158)
-- [ ] `testArity6TupleUnion` (line 177)
-- [ ] `testArity6TupleUnionAll` (line 210)
+- [x] `testMondrian2250` (line 49)
+- [x] `testArity4TupleUnion` (line 121)
+- [x] `testArity5TupleUnion` (line 142)
+- [x] `testArity5TupleUnionAll` (line 158)
+- [x] `testArity6TupleUnion` (line 177)
+- [x] `testArity6TupleUnionAll` (line 210)
 
 ## ValidMeasureFunDefTest (2)
 

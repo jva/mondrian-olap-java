@@ -949,15 +949,15 @@ File: `mondrian/olap/fun/ValidMeasureFunDefTest.java`
 
 File: `mondrian/olap/fun/VisualTotalsTest.java`
 
-- [ ] `testSubstituteEmpty` (line 31)
-- [ ] `testSubstituteOneStarOnly` (line 37)
-- [ ] `testSubstituteOneStarBegin` (line 43)
-- [ ] `testSubstituteOneStarEnd` (line 50)
-- [ ] `testSubstituteTwoStars` (line 58)
-- [ ] `testSubstituteCombined` (line 64)
-- [ ] `testDrillthroughVisualTotal` (line 78)
-- [ ] `testVisualTotalCaptionBug` (line 114)
-- [ ] `testVisualTotalsAggregatedMemberBug` (line 140)
+- [x] `testSubstituteEmpty` (line 31)
+- [x] `testSubstituteOneStarOnly` (line 37)
+- [x] `testSubstituteOneStarBegin` (line 43)
+- [x] `testSubstituteOneStarEnd` (line 50)
+- [x] `testSubstituteTwoStars` (line 58)
+- [x] `testSubstituteCombined` (line 64)
+- [x] `testDrillthroughVisualTotal` (line 78)
+- [x] `testVisualTotalCaptionBug` (line 114)
+- [x] `testVisualTotalsAggregatedMemberBug` (line 140)
 
 ## PartialSortTest (11)
 

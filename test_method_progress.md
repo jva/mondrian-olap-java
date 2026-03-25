@@ -916,16 +916,16 @@ File: `mondrian/olap/fun/SetFunDefTest.java`
 
 File: `mondrian/olap/fun/SortTest.java`
 
-- [ ] `testFoo` (line 23)
-- [ ] `testOrderDesc` (line 52)
-- [ ] `testOrderAndRank` (line 101)
-- [ ] `testListTuplesExceedsCellEvalLimit` (line 167)
-- [ ] `testNonBreakingAscendingComparator` (line 200)
-- [ ] `testMultiLevelBrkSort` (line 232)
-- [ ] `testAttributesWithShowsRowsColumnsWithMeasureData` (line 282)
-- [ ] `testSortOnMeasureWithShowRowsColumnsWithMeasureData` (line 345)
-- [ ] `testSortOnAttributesWithShowsRowsColumnsWithMeasureAndCalculatedMeasureData` (line 411)
-- [ ] `testSortOnMeasureWithShowsRowsColumnsWithShowAllEvenBlank` (line 460)
+- [x] `testFoo` (line 23)
+- [x] `testOrderDesc` (line 52)
+- [x] `testOrderAndRank` (line 101)
+- [x] `testListTuplesExceedsCellEvalLimit` (line 167)
+- [x] `testNonBreakingAscendingComparator` (line 200)
+- [x] `testMultiLevelBrkSort` (line 232)
+- [x] `testAttributesWithShowsRowsColumnsWithMeasureData` (line 282)
+- [x] `testSortOnMeasureWithShowRowsColumnsWithMeasureData` (line 345)
+- [x] `testSortOnAttributesWithShowsRowsColumnsWithMeasureAndCalculatedMeasureData` (line 411)
+- [x] `testSortOnMeasureWithShowsRowsColumnsWithShowAllEvenBlank` (line 460)
 
 ## UnionFunDefTest (6)
 

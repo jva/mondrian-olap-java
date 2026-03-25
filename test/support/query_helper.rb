@@ -20,10 +20,22 @@ module QueryHelper
 
   # Execute an axis expression against a cube (default: Sales).
   # Asserts member full names match expected (one per line).
+  # Formats each position as "{member1, member2}" for tuples,
+  # or just "member" for single-member positions.
   def assert_axis_returns(olap, expression, expected, cube: "Sales")
     mdx = "SELECT {#{expression}} ON 0 FROM [#{cube}]"
-    actual = olap.execute(mdx).column_full_names.join("\n")
-    assert_equal expected.strip, actual.strip
+    cell_set = olap.execute(mdx).raw_cell_set
+    axis = cell_set.getAxes.get(0)
+    lines = axis.getPositions.map do |position|
+      members = position.getMembers
+      if members.size == 1
+        members.get(0).getUniqueName
+      else
+        names = members.map { |m| m.getUniqueName }
+        "{#{names.join(', ')}}"
+      end
+    end
+    assert_equal expected.strip, lines.join("\n").strip
   end
 
   # Evaluate a scalar expression against a cube.

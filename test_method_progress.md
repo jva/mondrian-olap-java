@@ -16,8 +16,8 @@ File: `mondrian/calc/impl/ArrayTupleListTest.java`
 
 File: `mondrian/calc/impl/ConstantCalcTest.java`
 
-- [ ] `testNullEvaluatesToConstantDoubleNull` (line 24)
-- [ ] `testNullEvaluatesToConstantIntegerNull` (line 29)
+- [x] `testNullEvaluatesToConstantDoubleNull` (line 24)
+- [x] `testNullEvaluatesToConstantIntegerNull` (line 29)
 
 ## CellPropertyTest (3)
 

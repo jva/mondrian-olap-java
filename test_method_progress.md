@@ -1157,17 +1157,17 @@ File: `mondrian/rolap/BitKeyTest.java`
 
 File: `mondrian/rolap/CacheControlTest.java`
 
-- [ ] `testCreateCellRegion` (line 255)
-- [ ] `testNormalize2` (line 269)
-- [ ] `testFlush` (line 297)
-- [ ] `testPartialFlush` (line 448)
-- [ ] `testPartialFlush_2` (line 515)
-- [ ] `testPartialFlushRange` (line 551)
-- [ ] `testNegative` (line 874)
-- [ ] `testCrossjoin` (line 1019)
-- [ ] `testNormalize` (line 1129)
-- [ ] `testFlushNonPrimedContent` (line 1199)
-- [ ] `testMondrian1094` (line 1217)
+- [x] `testCreateCellRegion` (line 255)
+- [x] `testNormalize2` (line 269)
+- [x] `testFlush` (line 297)
+- [x] `testPartialFlush` (line 448)
+- [x] `testPartialFlush_2` (line 515)
+- [x] `testPartialFlushRange` (line 551)
+- [x] `testNegative` (line 874)
+- [x] `testCrossjoin` (line 1019)
+- [x] `testNormalize` (line 1129)
+- [x] `testFlushNonPrimedContent` (line 1199)
+- [x] `testMondrian1094` (line 1217)
 
 ## CancellationTest (2)
 

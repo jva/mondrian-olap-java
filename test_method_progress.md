@@ -1304,7 +1304,7 @@ File: `mondrian/rolap/HighDimensionsTest.java`
 
 File: `mondrian/rolap/IndexedValuesTest.java`
 
-- [ ] `testQueryWithIndex` (line 35)
+- [x] `testQueryWithIndex` (line 35)
 
 ## MemberCacheControlTest (10)
 

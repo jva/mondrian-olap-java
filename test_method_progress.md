@@ -192,11 +192,11 @@ File: `mondrian/olap/fun/CachedExistsTest.java`
 
 File: `mondrian/olap/fun/CrossJoinTest.java`
 
-- [ ] `testListTupleListTupleIterCalc` (line 114)
-- [ ] `testCrossJoinIterCalc_IterationCancellationOnForward` (line 151)
-- [ ] `testImmutableListTupleListTupleListCalc` (line 214)
-- [ ] `testMutableListTupleListTupleListCalc` (line 299)
-- [ ] `testResultLimitWithinCrossjoin` (line 351)
+- [x] `testListTupleListTupleIterCalc` (line 114)
+- [x] `testCrossJoinIterCalc_IterationCancellationOnForward` (line 151)
+- [x] `testImmutableListTupleListTupleListCalc` (line 214)
+- [x] `testMutableListTupleListTupleListCalc` (line 299)
+- [x] `testResultLimitWithinCrossjoin` (line 351)
 
 ## FunctionTest (590)
 

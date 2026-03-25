@@ -7,9 +7,19 @@ require 'minitest/reporters'
 require 'minitest/hooks/default'
 require 'pry'
 
+require_relative 'support/query_helper'
+require_relative 'support/schema_helper'
+require_relative 'support/sql_capture'
+require_relative 'support/mondrian_properties'
+
 Minitest::Reporters.use! Minitest::Reporters::DefaultReporter.new(color: true)
 
 class Minitest::Spec
+  include QueryHelper
+  include SchemaHelper
+  include SqlCapture
+  include MondrianPropertiesHelper
+
   def assert_like(expected, actual, msg = nil)
     expected_normalized = expected.gsub(/>\s*\n\s*/, '> ').gsub(/\s+/, ' ').strip
     actual_normalized = actual.gsub(/>\s*\n\s*/, '> ').gsub(/\s+/, ' ').strip

@@ -1124,7 +1124,7 @@ File: `mondrian/olap/type/TypeTest.java`
 
 File: `mondrian/olap4j/XmlaExtraTest.java`
 
-- [ ] `testGetDataSourceDoesntLeakPassword` (line 33)
+- [x] `testGetDataSourceDoesntLeakPassword` (line 33)
 
 ## BitKeyTest (22)
 

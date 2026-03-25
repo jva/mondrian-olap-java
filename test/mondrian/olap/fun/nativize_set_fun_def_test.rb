@@ -11,6 +11,23 @@
 
 require_relative "../../../test_helper"
 
+# InvocationHandler for the package-private RolapNative.Listener interface.
+# Tracks whether native evaluation was used via the foundEvaluator callback.
+class NativeListenerHandler
+  include java.lang.reflect.InvocationHandler
+
+  attr_reader :evaluator_found
+
+  def initialize
+    @evaluator_found = false
+  end
+
+  def invoke(_proxy, method, _args)
+    @evaluator_found = true if method.getName == "foundEvaluator"
+    nil
+  end
+end
+
 # Java: mondrian/olap/fun/NativizeSetFunDefTest.java
 describe "NativizeSetFunDef" do
   before(:all) do
@@ -45,18 +62,119 @@ describe "NativizeSetFunDef" do
     @olap.close if @olap
   end
 
-  # Strip NativizeSet from MDX, execute both versions, and compare results.
-  # This verifies that NativizeSet produces the same result as without it.
-  def check_nativize_results(mdx)
-    mdx_without_nativize = mdx.gsub(/NativizeSet/i, '')
-    refute_equal mdx, mdx_without_nativize, "Query should use NativizeSet"
-    expected = format_result(@olap.execute(mdx_without_nativize))
-    actual = format_result(@olap.execute(mdx))
-    assert_equal expected, actual
+  # -- Reflection helpers for package-private RolapNativeRegistry API --
+
+  # Invoke a package-private method via reflection, searching the class hierarchy.
+  def invoke_method(object, method_name, param_types = [], *args)
+    cls = object.getClass
+    method = nil
+    while cls
+      begin
+        method = cls.getDeclaredMethod(method_name, param_types.to_java(java.lang.Class))
+        break
+      rescue java.lang.NoSuchMethodException
+        cls = cls.getSuperclass
+      end
+    end
+    raise "Method #{method_name} not found on #{object.getClass.getName}" unless method
+    method.setAccessible(true)
+    args.empty? ? method.invoke(object) : method.invoke(object, *args)
   end
 
-  alias check_native check_nativize_results
-  alias check_not_native check_nativize_results
+  def get_native_registry(olap)
+    schema = olap.raw_mondrian_connection.getSchema
+    invoke_method(schema, "getNativeRegistry")
+  end
+
+  def set_native_enabled(registry, enabled)
+    invoke_method(registry, "setEnabled", [java.lang.Boolean::TYPE], enabled)
+  end
+
+  def set_native_listener(registry, listener)
+    listener_class = java.lang.Class.forName(
+      "mondrian.rolap.RolapNative$Listener", true, registry.getClass.getClassLoader
+    )
+    invoke_method(registry, "setListener", [listener_class], listener)
+  end
+
+  def set_native_hard_cache(registry, hard)
+    invoke_method(registry, "useHardCache", [java.lang.Boolean::TYPE], hard)
+  end
+
+  def create_native_listener(registry)
+    class_loader = registry.getClass.getClassLoader
+    listener_interface = java.lang.Class.forName(
+      "mondrian.rolap.RolapNative$Listener", true, class_loader
+    )
+    handler = NativeListenerHandler.new
+    proxy = java.lang.reflect.Proxy.newProxyInstance(
+      class_loader,
+      [listener_interface].to_java(java.lang.Class),
+      handler
+    )
+    [proxy, handler]
+  end
+
+  # -- Core check methods matching BatchTestCase behavior --
+
+  def remove_nativize(mdx)
+    result = mdx.gsub(/NativizeSet/i, '')
+    refute_equal mdx, result, "Query should use NativizeSet"
+    result
+  end
+
+  # Verifies that NativizeSet produces correct results AND that native
+  # evaluation is NOT used. Matches Java BatchTestCase.checkNotNative.
+  def check_not_native(mdx)
+    mdx_without_nativize = remove_nativize(mdx)
+    expected = format_result(@olap.execute(mdx_without_nativize))
+
+    registry = get_native_registry(@olap)
+    proxy, handler = create_native_listener(registry)
+    set_native_listener(registry, proxy)
+    begin
+      actual = format_result(@olap.execute(mdx))
+      assert_equal false, handler.evaluator_found, "Should not be executed native"
+      assert_equal expected, actual
+    ensure
+      set_native_listener(registry, nil)
+    end
+  end
+
+  # Verifies that NativizeSet produces correct results AND that native
+  # evaluation IS used. Runs with native disabled (interpreted) and enabled
+  # (native), then compares both against the expected result.
+  # Matches Java BatchTestCase.checkNative.
+  def check_native(mdx)
+    mdx_without_nativize = remove_nativize(mdx)
+    expected = format_result(@olap.execute(mdx_without_nativize))
+
+    registry = get_native_registry(@olap)
+
+    # Run with native disabled → interpreted result
+    set_native_enabled(registry, false)
+    begin
+      interpreted = format_result(@olap.execute(mdx))
+    ensure
+      set_native_enabled(registry, true)
+    end
+
+    # Run with native enabled + listener → native result
+    proxy, handler = create_native_listener(registry)
+    set_native_listener(registry, proxy)
+    set_native_hard_cache(registry, true)
+    begin
+      native_result = format_result(@olap.execute(mdx))
+
+      assert_equal true, handler.evaluator_found, "Result should have been native"
+      assert_equal interpreted, native_result,
+        "Native implementation returned different result than interpreter; MDX=#{mdx}"
+      assert_equal expected, native_result
+    ensure
+      set_native_listener(registry, nil)
+      set_native_hard_cache(registry, false)
+    end
+  end
 
   # Parse MDX query and compare the toString() output to verify query rewriting.
   def assert_query_is_rewritten(query, expected_query, olap: @olap)
@@ -318,9 +436,20 @@ describe "NativizeSetFunDef" do
   end
 
   # Java: NativizeSetFunDefTest#testOnlyMeasureIsLiteral
-  # Known Java-side failure: "should not be executed native"
+  # There's no base cube, so this should NOT be natively evaluated.
+  # Known Java-side failure: native evaluation is unexpectedly triggered
   it "only measure is literal" do
-    skip "Known Java-side failure: native evaluation unexpectedly triggered"
+    skip "Known Java-side failure (testOnlyMeasureIsLiteral)"
+    check_not_native(
+      "with " \
+      "member [measures].[cog_oqp_int_t1] as '1', solve_order = 65535 " \
+      "select NativizeSet(CrossJoin(" \
+      "   [marital status].[marital status].members, " \
+      "   [gender].[gender].members " \
+      ")) on 1, " \
+      "{ [measures].[cog_oqp_int_t1] } " \
+      "on 0 " \
+      "from [warehouse and sales]")
   end
 
   # Java: NativizeSetFunDefTest#testTwoLiteralMeasuresAndUnitAndStoreSales

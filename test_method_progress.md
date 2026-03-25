@@ -1193,7 +1193,7 @@ File: `mondrian/rolap/CellKeyTest.java`
 
 File: `mondrian/rolap/DataSourceChangeListenerTest.java`
 
-- [ ] `testDataSourceChangeListenerPlugin` (line 45)
+- [x] `testDataSourceChangeListenerPlugin` (line 45)
 
 ## FastBatchingCellReaderTest (46)
 

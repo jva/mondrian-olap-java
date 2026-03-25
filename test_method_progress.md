@@ -1173,8 +1173,8 @@ File: `mondrian/rolap/CacheControlTest.java`
 
 File: `mondrian/rolap/CancellationTest.java`
 
-- [ ] `testNonEmptyListCancellation` (line 26)
-- [ ] `testMutableCrossJoinCancellation` (line 47)
+- [x] `testNonEmptyListCancellation` (line 26)
+- [x] `testMutableCrossJoinCancellation` (line 47)
 
 ## CellKeyTest (8)
 

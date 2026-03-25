@@ -68,15 +68,15 @@ File: `mondrian/olap/HierarchyBugTest.java`
 
 File: `mondrian/olap/IdBatchResolverTest.java`
 
-- [ ] `testSimpleEnum` (line 50)
-- [ ] `testCalcMemsNotResolved` (line 95)
-- [ ] `testLevelReferenceHandled` (line 110)
-- [ ] `testPhysMemsResolvedWhenCalcsMixedIn` (line 132)
-- [ ] `testAnalyzerFilterMdx` (line 162)
-- [ ] `testSetWithNullMember` (line 216)
-- [ ] `testMultiHierarchyNonSSAS` (line 253)
-- [ ] `testMultiHierarchySSAS` (line 291)
-- [ ] `testParentChild` (line 330)
+- [x] `testSimpleEnum` (line 50)
+- [x] `testCalcMemsNotResolved` (line 95)
+- [x] `testLevelReferenceHandled` (line 110)
+- [x] `testPhysMemsResolvedWhenCalcsMixedIn` (line 132)
+- [x] `testAnalyzerFilterMdx` (line 162)
+- [x] `testSetWithNullMember` (line 216)
+- [x] `testMultiHierarchyNonSSAS` (line 253)
+- [x] `testMultiHierarchySSAS` (line 291)
+- [x] `testParentChild` (line 330)
 
 ## NullMemberRepresentationTest (3)
 

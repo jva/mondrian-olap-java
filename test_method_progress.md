@@ -909,8 +909,8 @@ File: `mondrian/olap/fun/PropertiesFunctionTest.java`
 
 File: `mondrian/olap/fun/SetFunDefTest.java`
 
-- [ ] `testSetWithMembersFromDifferentHierarchies` (line 27)
-- [ ] `testSetWith2TuplesWithDifferentHierarchies` (line 34)
+- [x] `testSetWithMembersFromDifferentHierarchies` (line 27)
+- [x] `testSetWith2TuplesWithDifferentHierarchies` (line 34)
 
 ## SortTest (10)
 

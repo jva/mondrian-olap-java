@@ -1115,10 +1115,10 @@ File: `mondrian/olap/fun/vba/VbaTest.java`
 
 File: `mondrian/olap/type/TypeTest.java`
 
-- [ ] `testConversions` (line 29)
-- [ ] `testCommonTypeWhenSetTypeHavingMemberTypeAndTupleType` (line 162)
-- [ ] `testCommonTypeOfMemberandTupleTypeIsTupleType` (line 190)
-- [ ] `testCommonTypeBetweenTuplesOfDifferentSizesIsATupleType` (line 213)
+- [x] `testConversions` (line 29)
+- [x] `testCommonTypeWhenSetTypeHavingMemberTypeAndTupleType` (line 162)
+- [x] `testCommonTypeOfMemberandTupleTypeIsTupleType` (line 190)
+- [x] `testCommonTypeBetweenTuplesOfDifferentSizesIsATupleType` (line 213)
 
 ## XmlaExtraTest (1)
 

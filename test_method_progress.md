@@ -942,8 +942,8 @@ File: `mondrian/olap/fun/UnionFunDefTest.java`
 
 File: `mondrian/olap/fun/ValidMeasureFunDefTest.java`
 
-- [ ] `testSecondHierarchyInDimension` (line 30)
-- [ ] `testValidMeasureWithNullTuple` (line 84)
+- [x] `testSecondHierarchyInDimension` (line 30)
+- [x] `testValidMeasureWithNullTuple` (line 84)
 
 ## VisualTotalsTest (9)
 

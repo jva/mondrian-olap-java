@@ -979,12 +979,12 @@ File: `mondrian/olap/fun/sort/PartialSortTest.java`
 
 File: `mondrian/olap/fun/sort/SorterTest.java`
 
-- [ ] `testComparatorSelectionBrkOrderByKey` (line 83)
-- [ ] `testComparatorSelectionBrkNotOrderByKey` (line 91)
-- [ ] `testComparatorSelectionNotBreakingOrderByKey` (line 99)
-- [ ] `testComparatorSelectionNotBreaking` (line 107)
-- [ ] `testSortTuplesBreakingByKey` (line 117)
-- [ ] `testCancel` (line 131)
+- [x] `testComparatorSelectionBrkOrderByKey` (line 83)
+- [x] `testComparatorSelectionBrkNotOrderByKey` (line 91)
+- [x] `testComparatorSelectionNotBreakingOrderByKey` (line 99)
+- [x] `testComparatorSelectionNotBreaking` (line 107)
+- [x] `testSortTuplesBreakingByKey` (line 117)
+- [x] `testCancel` (line 131)
 
 ## ExcelTest (16)
 

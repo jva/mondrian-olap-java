@@ -82,9 +82,9 @@ File: `mondrian/olap/IdBatchResolverTest.java`
 
 File: `mondrian/olap/NullMemberRepresentationTest.java`
 
-- [ ] `testClosingPeriodMemberLeafWithCustomNullRepresentation` (line 25)
-- [ ] `testItemMemberWithCustomNullMemberRepresentation` (line 49)
-- [ ] `testNullMemberWithCustomRepresentation` (line 60)
+- [x] `testClosingPeriodMemberLeafWithCustomNullRepresentation` (line 25)
+- [x] `testItemMemberWithCustomNullMemberRepresentation` (line 49)
+- [x] `testNullMemberWithCustomRepresentation` (line 60)
 
 ## ParserTest (35)
 

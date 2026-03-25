@@ -1309,16 +1309,16 @@ File: `mondrian/rolap/IndexedValuesTest.java`
 
 File: `mondrian/rolap/MemberCacheControlTest.java`
 
-- [ ] `testFilter` (line 268)
-- [ ] `testMemberOpsFailIfCacheEnabled` (line 285)
-- [ ] `testSetPropertyCommandOnLeafMember` (line 309)
-- [ ] `testSetPropertyCommandOnNonLeafMember` (line 364)
-- [ ] `testAddCommand` (line 428)
-- [ ] `testDeleteCommand` (line 642)
-- [ ] `testMoveCommand` (line 713)
-- [ ] `testMoveFailBadLevel` (line 797)
-- [ ] `testAddCommandNegative` (line 877)
-- [ ] `testFlushHierarchy` (line 986)
+- [x] `testFilter` (line 268)
+- [x] `testMemberOpsFailIfCacheEnabled` (line 285)
+- [x] `testSetPropertyCommandOnLeafMember` (line 309)
+- [x] `testSetPropertyCommandOnNonLeafMember` (line 364)
+- [x] `testAddCommand` (line 428)
+- [x] `testDeleteCommand` (line 642)
+- [x] `testMoveCommand` (line 713)
+- [x] `testMoveFailBadLevel` (line 797)
+- [x] `testAddCommandNegative` (line 877)
+- [x] `testFlushHierarchy` (line 986)
 
 ## MemberCacheHelperTest (6)
 

@@ -130,8 +130,8 @@ File: `mondrian/olap/ParserTest.java`
 
 File: `mondrian/olap/QueryTest.java`
 
-- [ ] `testHasCellPropertyWhenQueryHasCellProperties` (line 63)
-- [ ] `testIsCellPropertyEmpty` (line 68)
+- [x] `testHasCellPropertyWhenQueryHasCellProperties` (line 63)
+- [x] `testIsCellPropertyEmpty` (line 68)
 
 ## UtilTestCase (37)
 

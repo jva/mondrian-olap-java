@@ -1293,12 +1293,12 @@ File: `mondrian/rolap/GroupingSetQueryTest.java`
 
 File: `mondrian/rolap/HighDimensionsTest.java`
 
-- [ ] `testBug1971406` (line 38)
-- [ ] `testPromotionsTwoDimensions` (line 105)
-- [ ] `testHead` (line 119)
-- [ ] `testNonEmpty` (line 183)
-- [ ] `testFilter` (line 196)
-- [ ] `testMondrian1488` (line 219)
+- [x] `testBug1971406` (line 38)
+- [x] `testPromotionsTwoDimensions` (line 105)
+- [x] `testHead` (line 119)
+- [x] `testNonEmpty` (line 183)
+- [x] `testFilter` (line 196)
+- [x] `testMondrian1488` (line 219)
 
 ## IndexedValuesTest (1)
 

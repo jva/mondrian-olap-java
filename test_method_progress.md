@@ -797,7 +797,7 @@ File: `mondrian/olap/fun/FunctionTest.java`
 
 File: `mondrian/olap/fun/IifFunDefTest.java`
 
-- [ ] `testGetResultType` (line 45)
+- [x] `testGetResultType` (line 45)
 
 ## NativizeSetFunDefTest (81)
 

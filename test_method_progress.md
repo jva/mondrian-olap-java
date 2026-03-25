@@ -179,14 +179,14 @@ File: `mondrian/olap/UtilTestCase.java`
 
 File: `mondrian/olap/fun/CachedExistsTest.java`
 
-- [ ] `testEducationLevelSubtotals` (line 29)
-- [ ] `testProductFamilySubtotals` (line 56)
-- [ ] `testProductFamilyProductDepartmentSubtotals` (line 83)
-- [ ] `testRowColumSubtotals` (line 116)
-- [ ] `testProductFamilyDisplayMember` (line 152)
-- [ ] `testTop10Customers` (line 192)
-- [ ] `testTop1CustomersWithColumnLevel` (line 262)
-- [ ] `testMondrian2704` (line 290)
+- [x] `testEducationLevelSubtotals` (line 29)
+- [x] `testProductFamilySubtotals` (line 56)
+- [x] `testProductFamilyProductDepartmentSubtotals` (line 83)
+- [x] `testRowColumSubtotals` (line 116)
+- [x] `testProductFamilyDisplayMember` (line 152)
+- [x] `testTop10Customers` (line 192)
+- [x] `testTop1CustomersWithColumnLevel` (line 262)
+- [x] `testMondrian2704` (line 290)
 
 ## CrossJoinTest (5)
 

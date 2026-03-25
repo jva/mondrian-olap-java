@@ -1275,18 +1275,19 @@ File: `mondrian/rolap/FilterTest.java`
 - [x] `testBug779` (line 1124)
 - [x] `testMultiValueInWithNullVals` (line 1197)
 
-## GroupingSetQueryTest (8)
+## GroupingSetQueryTest (9)
 
 File: `mondrian/rolap/GroupingSetQueryTest.java`
 
-- [ ] `testGroupingSetsWithAggregateOverDefaultMember` (line 81)
-- [ ] `testGroupingSetForSingleColumnConstraint` (line 106)
-- [ ] `testNotUsingGroupingSetWhenGroupUsesDifferentAggregateTable` (line 187)
-- [ ] `testNotUsingGroupingSet` (line 229)
-- [ ] `testGroupingSetForMultipleMeasureAndSingleConstraint` (line 275)
-- [ ] `testGroupingSetForASummaryCanBeGroupedWith2DetailBatch` (line 339)
-- [ ] `testGroupingSetForMultipleColumnConstraint` (line 408)
-- [ ] `testBug2004202` (line 548)
+- [x] `testGroupingSetsWithAggregateOverDefaultMember` (line 81)
+- [x] `testGroupingSetForSingleColumnConstraint` (line 106)
+- [x] `testNotUsingGroupingSetWhenGroupUsesDifferentAggregateTable` (line 187)
+- [x] `testNotUsingGroupingSet` (line 229)
+- [x] `testGroupingSetForMultipleMeasureAndSingleConstraint` (line 275)
+- [x] `testGroupingSetForASummaryCanBeGroupedWith2DetailBatch` (line 339)
+- [x] `testGroupingSetForMultipleColumnConstraint` (line 408)
+- [x] `testGroupingSetForMultipleColumnConstraintAndCompoundConstraint` (line 485)
+- [x] `testBug2004202` (line 548)
 
 ## HighDimensionsTest (6)
 

@@ -963,17 +963,17 @@ File: `mondrian/olap/fun/VisualTotalsTest.java`
 
 File: `mondrian/olap/fun/sort/PartialSortTest.java`
 
-- [ ] `testPredicate1` (line 160)
-- [ ] `testPredicate2` (line 229)
-- [ ] `testQuick` (line 298)
-- [ ] `testOnAlreadySorted` (line 307)
-- [ ] `testOnAlreadyReverseSorted` (line 319)
-- [ ] `testOnRandomIntegers` (line 363)
-- [ ] `testOnManyRandomIntegers` (line 371)
-- [ ] `testPredicateIsStablySorted` (line 436)
-- [ ] `testStableQuick` (line 452)
-- [ ] `testStableOnRandomItems` (line 492)
-- [ ] `testSpeed` (line 545)
+- [x] `testPredicate1` (line 160)
+- [x] `testPredicate2` (line 229)
+- [x] `testQuick` (line 298)
+- [x] `testOnAlreadySorted` (line 307)
+- [x] `testOnAlreadyReverseSorted` (line 319)
+- [x] `testOnRandomIntegers` (line 363)
+- [x] `testOnManyRandomIntegers` (line 371)
+- [x] `testPredicateIsStablySorted` (line 436)
+- [x] `testStableQuick` (line 452)
+- [x] `testStableOnRandomItems` (line 492)
+- [x] `testSpeed` (line 545) — skipped: performance/logging test
 
 ## SorterTest (6)
 

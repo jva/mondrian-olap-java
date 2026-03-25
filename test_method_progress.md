@@ -50,19 +50,19 @@ File: `mondrian/olap/CustomizedParserTest.java`
 
 File: `mondrian/olap/HierarchyBugTest.java`
 
-- [ ] `testNoHierarchy` (line 43)
-- [ ] `testNamesIdentitySsasCompatibleTimeHierarchy` (line 86)
-- [ ] `testNamesIdentitySsasCompatibleWeeklyHierarchy` (line 101)
-- [ ] `testNamesIdentitySsasInCompatibleTimeHierarchy` (line 117)
-- [ ] `testNamesIdentitySsasInCompatibleWeeklyHierarchy` (line 131)
-- [ ] `testNamesIdentitySsasCompatibleOlap4j` (line 167)
-- [ ] `testNamesIdentitySsasInCompatibleOlap4j` (line 173)
-- [ ] `testNamesIdentitySsasCompatibleOlap4jWeekly` (line 190)
-- [ ] `testNamesIdentitySsasInCompatibleOlap4jWeekly` (line 203)
-- [ ] `testNamesIdentitySsasCompatibleOlap4jDateDim` (line 215)
-- [ ] `testNamesSsasInCompatibleOlap4jDateDim` (line 223)
-- [ ] `testNamesIdentitySsasCompatibleOlap4jDateWeekly` (line 255)
-- [ ] `testNamesIdentitySsasInCompatibleOlap4jDateDim` (line 267)
+- [x] `testNoHierarchy` (line 43)
+- [x] `testNamesIdentitySsasCompatibleTimeHierarchy` (line 86)
+- [x] `testNamesIdentitySsasCompatibleWeeklyHierarchy` (line 101)
+- [x] `testNamesIdentitySsasInCompatibleTimeHierarchy` (line 117)
+- [x] `testNamesIdentitySsasInCompatibleWeeklyHierarchy` (line 131)
+- [x] `testNamesIdentitySsasCompatibleOlap4j` (line 167)
+- [x] `testNamesIdentitySsasInCompatibleOlap4j` (line 173)
+- [x] `testNamesIdentitySsasCompatibleOlap4jWeekly` (line 190)
+- [x] `testNamesIdentitySsasInCompatibleOlap4jWeekly` (line 203)
+- [x] `testNamesIdentitySsasCompatibleOlap4jDateDim` (line 215)
+- [x] `testNamesSsasInCompatibleOlap4jDateDim` (line 223)
+- [x] `testNamesIdentitySsasCompatibleOlap4jDateWeekly` (line 255)
+- [x] `testNamesIdentitySsasInCompatibleOlap4jDateDim` (line 267)
 
 ## IdBatchResolverTest (9)
 

@@ -1180,14 +1180,14 @@ File: `mondrian/rolap/CancellationTest.java`
 
 File: `mondrian/rolap/CellKeyTest.java`
 
-- [ ] `testMany` (line 31)
-- [ ] `testZero` (line 82)
-- [ ] `testOne` (line 105)
-- [ ] `testTwo` (line 150)
-- [ ] `testThree` (line 197)
-- [ ] `testFour` (line 245)
-- [ ] `testCellLookup` (line 294)
-- [ ] `testSize` (line 364)
+- [x] `testMany` (line 31)
+- [x] `testZero` (line 82)
+- [x] `testOne` (line 105)
+- [x] `testTwo` (line 150)
+- [x] `testThree` (line 197)
+- [x] `testFour` (line 245)
+- [x] `testCellLookup` (line 294)
+- [x] `testSize` (line 364)
 
 ## DataSourceChangeListenerTest (1)
 

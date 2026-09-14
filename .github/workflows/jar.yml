@@ -135,9 +135,11 @@ jobs:
             # The notes hold blank lines, which a --notes argument on one line cannot carry.
             notes=$RUNNER_TEMP/release_notes.md
             {
-              echo 'One engine JAR per commit, named after the first 7 characters of the commit'
-              echo 'SHA. The manifest of the JAR holds all 40 in Source-Revision. These builds are'
-              echo 'for development only. A person removes an old build by hand.'
+              echo 'One engine JAR per push that changes the build. The workflow builds the tip'
+              echo 'commit of the push, so an earlier commit of the same push gets no JAR. The name'
+              echo 'of the JAR holds the first 7 characters of the commit SHA, and the manifest holds'
+              echo 'all 40 in Source-Revision. These builds are for development only. A person removes'
+              echo 'an old build by hand.'
               echo
               echo 'GitHub adds the Source code archives from the tag. They are not the source of any'
               echo 'JAR. Each JAR names its own commit, in the file name and in `Source-Revision`.'

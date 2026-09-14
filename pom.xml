@@ -23,6 +23,9 @@
   </scm>
   <properties>
     <revision>1.4.0-SNAPSHOT</revision>
+    <!-- The build writes this into the JAR manifest. A build server passes the commit SHA that it
+         builds, so that every JAR names the source it came from. -->
+    <source.revision>unknown</source.revision>
     <license.licenseName>epl_only_v1</license.licenseName>
 
     <olap4j.version>1.2.0</olap4j.version>
@@ -61,6 +64,7 @@
     <release.jdk.version>8</release.jdk.version>
     <project.build.debug>true</project.build.debug>
     <maven-clean-plugin.version>3.2.0</maven-clean-plugin.version>
+    <maven-jar-plugin.version>3.4.1</maven-jar-plugin.version>
     <maven-surefire-plugin.version>3.5.4</maven-surefire-plugin.version>
     <build-helper-maven-plugin.version>3.6.1</build-helper-maven-plugin.version>
   </properties>

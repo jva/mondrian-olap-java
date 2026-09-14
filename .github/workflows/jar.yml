@@ -1,0 +1,187 @@
+name: Engine JAR
+
+# Builds the engine JAR for every branch and publishes it in two places. Each place serves a
+# different consumer.
+#
+# - An asset of the development prerelease, for anybody outside the run. A release asset of a
+#   public repository downloads without a token. A developer, another repository or a machine
+#   with no GitHub credentials can download it:
+#
+#     https://github.com/rsim/mondrian-olap-java/releases/download/development/mondrian-olap-java-<short-sha>.jar
+#
+# - A workflow artifact, for the run itself. The publish job downloads the JAR from it, and a
+#   person who opens the run page downloads the same file. An artifact needs a token, so it does
+#   not serve a consumer outside GitHub.
+#
+# Each asset carries the first 7 characters of the commit SHA in its name, and the manifest of the
+# JAR holds all 40 in Source-Revision. A moved branch therefore cannot give a consumer a JAR that
+# does not match its source. Nothing deletes an old asset yet, so a person removes one by hand.
+
+on:
+  push:
+    branches:
+      - '**'
+    # The JAR packages LICENSE.html and mondrian/README.txt, so a change to either needs a build.
+    paths:
+      - 'pom.xml'
+      - 'mondrian/pom.xml'
+      - 'mondrian/build.xml'
+      - 'mondrian/src/**'
+      - 'mondrian/README.txt'
+      - 'lib-repo/**'
+      - 'LICENSE.html'
+      - '.github/workflows/jar.yml'
+
+concurrency:
+  # A second push to the same branch replaces the first build. The commit that it cancels gets
+  # no asset, and a consumer then falls back to a local build.
+  group: jar-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    # Runs the Maven build, which executes third-party plugin code. The job therefore holds a
+    # read-only token, and it gives the JAR to the publish job through the artifact.
+    name: Build the JAR
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    outputs:
+      asset: ${{ steps.asset.outputs.asset }}
+      version: ${{ steps.asset.outputs.version }}
+    steps:
+      - name: Checkout code
+        # The build needs no credential. Keep the token out of .git/config, where a Maven plugin
+        # could read it.
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Set JAVA home
+        # The POM targets release 8, so any JDK from 11 up produces the same class files.
+        # 11 is the version that the build documentation recommends.
+        run: echo "JAVA_HOME=$JAVA_HOME_11_X64" >> $GITHUB_ENV
+      - name: Output JAVA version
+        run: $JAVA_HOME/bin/java -version
+      - name: Cache Maven repository
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-maven-
+      - name: Drop the lib-repo artifacts from the restored cache
+        # Maven copies each lib-repo artifact into the local repository, and the cache step saves
+        # that copy. The versions are releases, so Maven reuses the copy and never reads lib-repo
+        # again. A change to an artifact in place would therefore build against the old file. The
+        # checkout holds the originals, so the copy back costs nothing. The list comes from
+        # lib-repo itself, so a new artifact needs no change here.
+        run: |
+          set -euo pipefail
+          find lib-repo -name '*.jar' | sed 's|^lib-repo/||; s|/[^/]*$||' | sort -u |
+            while read -r dir; do rm -rf "$HOME/.m2/repository/$dir"; done
+      - name: Build the JAR
+        # -DskipTests skips the legacy Java suite, which needs a preloaded FoodMart database.
+        run: mvn package -q -DskipTests -Dsource.revision="$GITHUB_SHA"
+      - name: Name the JAR after the commit
+        id: asset
+        run: |
+          set -euo pipefail
+          # Without nullglob an empty directory leaves the unexpanded pattern in the array,
+          # which hides the real problem behind a copy error.
+          shopt -s nullglob
+          jars=(mondrian/target/mondrian-olap-java-*.jar)
+          if [ ${#jars[@]} -ne 1 ]; then
+            echo "::error::Expected one engine JAR in mondrian/target, found ${#jars[@]}"
+            exit 1
+          fi
+          jar=${jars[0]}
+          version=${jar##*/}
+          version=${version#mondrian-olap-java-}
+          version=${version%.jar}
+          # GitHub shows the first 7 characters of a commit SHA, and it shows 7 in every
+          # repository. mondrian has no 7 character collision in its 7381 commits. Read the full
+          # SHA from Source-Revision in the manifest.
+          asset="mondrian-olap-java-${GITHUB_SHA:0:7}.jar"
+          cp "$jar" "$asset"
+          echo "asset=$asset" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - name: Upload the JAR as a workflow artifact
+        # The transport to the publish job, and the copy that a person downloads from the run
+        # page. 14 days is enough for both, because the release asset is the durable copy.
+        uses: actions/upload-artifact@v4
+        with:
+          name: engine-jar
+          path: ${{ steps.asset.outputs.asset }}
+          retention-days: 14
+
+  publish:
+    # Holds the write token that the release upload needs. The job checks out nothing and builds
+    # nothing, so no third-party code runs beside that token.
+    name: Publish the JAR
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    env:
+      ASSET: ${{ needs.build.outputs.asset }}
+      VERSION: ${{ needs.build.outputs.version }}
+    steps:
+      - name: Download the JAR from the build job
+        uses: actions/download-artifact@v4
+        with:
+          name: engine-jar
+      - name: Publish the JAR to the development release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # The job checks out nothing, so gh cannot read the repository from a git remote. It
+          # does not read GITHUB_REPOSITORY either.
+          GH_REPO: ${{ github.repository }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          set -euo pipefail
+          if ! gh release view development >/dev/null 2>&1; then
+            # The tag only holds the assets, so it points at the default branch and stays there.
+            # Two branches can reach this at the same time, and the second create then fails.
+            # Accept that one case only, which the release view proves.
+            # The notes hold blank lines, which a --notes argument on one line cannot carry.
+            notes=$RUNNER_TEMP/release_notes.md
+            {
+              echo 'One engine JAR per push that changes the build. The workflow builds the tip'
+              echo 'commit of the push, so an earlier commit of the same push gets no JAR. The name'
+              echo 'of the JAR holds the first 7 characters of the commit SHA, and the manifest holds'
+              echo 'all 40 in Source-Revision. These builds are for development only. A person removes'
+              echo 'an old build by hand.'
+              echo
+              echo 'GitHub adds the Source code archives from the tag. They are not the source of any'
+              echo 'JAR. Each JAR names its own commit, in the file name and in `Source-Revision`.'
+              echo
+              echo 'TODO: create a GitHub action that would clean up stale development build artifacts'
+            } > "$notes"
+            if ! gh release create development \
+              --target "$DEFAULT_BRANCH" \
+              --prerelease \
+              --title 'Development builds' \
+              --notes-file "$notes"; then
+              gh release view development >/dev/null
+            fi
+          fi
+          gh release upload development "$ASSET" --clobber
+      - name: Write the step summary
+        run: |
+          set -euo pipefail
+          {
+            echo "### Engine JAR"
+            echo
+            echo "| Field | Value |"
+            echo "| --- | --- |"
+            echo "| Version | \`$VERSION\` |"
+            echo "| Source revision | [\`$GITHUB_SHA\`](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/commit/${GITHUB_SHA}) |"
+            echo "| Size | $(du -h "$ASSET" | cut -f1) |"
+            echo "| SHA-256 | \`$(sha256sum "$ASSET" | cut -d' ' -f1)\` |"
+            echo
+            echo "Download:"
+            echo
+            echo '```'
+            echo "curl -fL -o $ASSET \\"
+            echo "  ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/releases/download/development/$ASSET"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

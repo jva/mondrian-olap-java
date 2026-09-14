@@ -62,6 +62,59 @@ mondrian-olap-java is a fork of the Mondrian OLAP Java engine, maintained to pro
 
 > Note: bare `mvn package` runs the legacy Java test suite, which requires a preloaded FoodMart database. Use `mise package` for a fast test-skipping build, or `mise java_test` to explicitly run the legacy Java tests.
 
+Every JAR carries the identity of its source. `META-INF/MANIFEST.MF` holds
+`Implementation-Version`, `Source-Revision` and `Build-Timestamp`. `Source-Revision` holds the
+commit that the build used, and the build reads it from the `source.revision` Maven property. The
+`Engine JAR` workflow passes `-Dsource.revision="$GITHUB_SHA"`, which is the commit that the build
+server checked out. A local build passes nothing, so `Source-Revision` stays `unknown` unless you
+pass `-Dsource.revision=<sha>` yourself.
+
+### Downloading a built JAR
+
+The `Engine JAR` workflow builds every branch and publishes the JAR as an asset of the
+`development` prerelease. Download a JAR instead of building it, when you know the commit:
+
+```bash
+sha=$(git rev-parse HEAD)
+curl -fL -o "mondrian-olap-java-${sha:0:7}.jar" \
+  "https://github.com/rsim/mondrian-olap-java/releases/download/development/mondrian-olap-java-${sha:0:7}.jar"
+```
+
+The file name holds the first 7 characters of the commit, which is the length that GitHub shows in
+its own pages. Cut the name with `${sha:0:7}` and not with `git rev-parse --short`, because git
+chooses that length from the size of the repository and a later checkout can give a different one.
+
+`Source-Revision` in the manifest holds all 40 characters of the same commit. Read it back from a
+JAR on your disk:
+
+```bash
+unzip -p "mondrian-olap-java-<short-sha>.jar" META-INF/MANIFEST.MF | grep Source-Revision
+```
+
+The run page of the workflow also holds the JAR as an artifact for 14 days. That copy needs a
+GitHub token, so use the release asset unless you already work inside the run.
+
+A commit can have no asset. These are the reasons:
+
+- The build still runs, or the build failed.
+- A later push to the same branch cancelled the build.
+- The push held more than one commit. The workflow builds the tip only.
+- The commit changed no file that the `paths` filter of the workflow lists.
+- Somebody pushed the commit to a fork. The asset is then in the release of the fork.
+- Nobody pushed the commit.
+
+Build the JAR locally in these cases, or take the asset of the nearest ancestor commit that has
+one. The compiled classes are the same when no commit between them touched the build.
+`Source-Revision` then names that ancestor and not your checkout, because it always names the
+commit that the build server built.
+
+These assets are for development only, so do not depend on one for a release. Nothing deletes an
+old asset yet, so the release grows with every build. A person removes an asset by hand:
+
+```bash
+gh release delete-asset development "mondrian-olap-java-<short-sha>.jar"
+```
+
 ### Making Changes
 
 1. **Bug fixes and enhancements** - Modify Java source files under `mondrian/src/main/java/mondrian/`.

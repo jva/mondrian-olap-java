@@ -68,6 +68,16 @@ jobs:
           path: ~/.m2/repository
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
           restore-keys: ${{ runner.os }}-maven-
+      - name: Drop the lib-repo artifacts from the restored cache
+        # Maven copies each lib-repo artifact into the local repository, and the cache step saves
+        # that copy. The versions are releases, so Maven reuses the copy and never reads lib-repo
+        # again. A change to an artifact in place would therefore build against the old file. The
+        # checkout holds the originals, so the copy back costs nothing. The list comes from
+        # lib-repo itself, so a new artifact needs no change here.
+        run: |
+          set -euo pipefail
+          find lib-repo -name '*.jar' | sed 's|^lib-repo/||; s|/[^/]*$||' | sort -u |
+            while read -r dir; do rm -rf "$HOME/.m2/repository/$dir"; done
       - name: Build the JAR
         # -DskipTests skips the legacy Java suite, which needs a preloaded FoodMart database.
         run: mvn package -q -DskipTests -Dsource.revision="$GITHUB_SHA"

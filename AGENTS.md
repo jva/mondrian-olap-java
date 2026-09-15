@@ -154,6 +154,9 @@ When modifying existing Mondrian Java classes or adding new functionality then u
   `unless %w(oracle).include?(MONDRIAN_DRIVER)`.
 - Test files are located in `test/` directory and follow the naming pattern `*_test.rb`.
 - Test helper and database configuration are in `test/test_helper.rb`.
+- When you migrate a Java test to Minitest, delete the Java test file and remove its entry
+  from `mondrian.test.Main`. Name the Java source in a `# Java: <path>` header at the top of
+  the Ruby file. Such a deletion needs no `// PATCH:` marker.
 
 ### mise
 

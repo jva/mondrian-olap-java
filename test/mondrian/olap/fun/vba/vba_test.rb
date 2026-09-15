@@ -212,8 +212,8 @@ describe "VBA functions" do
     assert_equal "-100", Vba.str(-100)
     assert_equal "-10.123", Vba.str(-10.123)
     assert_equal " 10.123", Vba.str(10.123)
-    error = assert_raises(java.lang.RuntimeException) { Vba.oct("a") }
-    assert_message error, "Invalid parameter."
+    error = assert_raises(java.lang.RuntimeException) { Vba.str("a") }
+    assert_message error, "of Str function must be of type number"
   end
 
   # Java: VbaTest#testVal

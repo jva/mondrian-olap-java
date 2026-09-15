@@ -71,6 +71,8 @@ describe "VBA functions" do
   # zone that the Java test assumed for the partial year case of DateAdd.
   before(:all) do
     @machine_locale = Locale.getDefault
+    @machine_format_locale = Locale.getDefault(Locale::Category::FORMAT)
+    @machine_display_locale = Locale.getDefault(Locale::Category::DISPLAY)
     @machine_time_zone = java.util.TimeZone.getDefault
     Locale.setDefault(Locale::US)
     java.util.TimeZone.setDefault(java.util.TimeZone.getTimeZone("America/Los_Angeles"))
@@ -78,6 +80,8 @@ describe "VBA functions" do
 
   after(:all) do
     Locale.setDefault(@machine_locale)
+    Locale.setDefault(Locale::Category::FORMAT, @machine_format_locale)
+    Locale.setDefault(Locale::Category::DISPLAY, @machine_display_locale)
     java.util.TimeZone.setDefault(@machine_time_zone)
   end
 

@@ -48,8 +48,6 @@ import mondrian.olap.fun.ValidMeasureFunDefTest;
 import mondrian.olap.fun.VisualTotalsTest;
 import mondrian.olap.fun.sort.PartialSortTest;
 import mondrian.olap.fun.sort.SorterTest;
-import mondrian.olap.fun.vba.ExcelTest;
-import mondrian.olap.fun.vba.VbaTest;
 import mondrian.olap.type.TypeTest;
 import mondrian.olap4j.XmlaExtraTest;
 import mondrian.rolap.BitKeyTest;
@@ -325,8 +323,6 @@ public class Main extends TestSuite {
       addTest( suite, FunctionTest.class );
       addTest( suite, CurrentDateMemberUdfTest.class );
       addTest( suite, PartialSortTest.class );
-      addTest( suite, VbaTest.class );
-      addTest( suite, ExcelTest.class );
       addTest( suite, HierarchyBugTest.class );
       addTest( suite, ScheduleTest.class );
       addTest( suite, UtilTestCase.class );

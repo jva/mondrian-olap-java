@@ -11988,8 +11988,9 @@ Intel platforms):
   }
 
   // The following methods test VBA functions. They don't test all of them,
-  // because the raw methods are tested in VbaTest, but they test the core
-  // functionalities like error handling and operator overloading.
+  // because the raw methods are tested in test/mondrian/olap/fun/vba/vba_test.rb,
+  // but they test the core functionalities like error handling and operator
+  // overloading.
 
   public void testVbaBasic() {
     // Exp is a simple function: one arg.

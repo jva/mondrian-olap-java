@@ -330,5 +330,6 @@ artifact is `mondrian-olap-java`.
   non-nullable by default).
 - The primary test suite for fork changes is the JRuby/Minitest suite in the
   repo-root `test/` directory (run via `rake test`), which exercises the
-  built JAR through the mondrian-olap gem; the legacy Java tests are kept
-  but not extended (see `AGENTS.md`).
+  built JAR through the mondrian-olap gem (see `AGENTS.md`). The legacy Java
+  tests are kept, but will be migrated over time to Minitest. These migrations
+  will delete the tests from Java suite without PATCH markers.

@@ -254,6 +254,16 @@ statement hygiene, not a cache flush, and shared segments survive it.
   (`SchemaKey`) is in flight at a time — messages for a busy schema are
   requeued — preserving the per-schema serialization the actor model
   guarantees while letting unrelated schemas proceed in parallel.
+- **A loader thread must not hold a query permit while it waits for the
+  actor.** `SqlStatement#execute` takes a permit of the JVM wide, fair
+  `querySemaphore` (sized by `mondrian.query.limit`). The segment load callback
+  sends a command to the actor and waits for the answer. (fork PATCH) The permit
+  is acquired **after** that callback, not before it, because the actor runs SQL
+  of its own — `Aggregation#optimizePredicates` reads a column cardinality — and
+  that SQL needs a permit too. Acquiring first made a deadlock: the permit
+  holders waited for the actor, the actor waited for a permit, and the fair
+  semaphore handed each freed permit to the next loader thread, which wedged in
+  the same place. `test/soak/segment_cache_manager_soak.rb` reproduces it.
 - **Readers never block.** The evaluation hot path touches only the
   thread-local `Bar`; shared structures reached outside the actor (pool maps,
   index registry, member caches) are concurrent maps and soft-reference

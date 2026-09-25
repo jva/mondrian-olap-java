@@ -9,6 +9,14 @@ Rake::TestTask.new(:test) do |t|
 end
 
 namespace :test do
+  desc "Run the SegmentCacheManager soak test in its own JVM"
+  task :soak do
+    # The soak sets Mondrian system properties that are read once, when a class loads, and it
+    # leaves wedged threads behind when it detects the deadlock. It needs its own process.
+    script = File.expand_path("soak/segment_cache_manager_soak.rb", __dir__)
+    sh "#{Gem.ruby} -I#{File.expand_path(__dir__)} #{script}"
+  end
+
   %w(mysql postgresql oracle sqlserver clickhouse).each do |driver|
     desc "Run tests with #{driver} driver"
     task driver do

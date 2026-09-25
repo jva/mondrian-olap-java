@@ -2,13 +2,14 @@
 
 # Soak test for the SegmentCacheManager actor deadlock.
 #
-# SqlStatement.execute acquires a permit of the JVM wide, fair querySemaphore before it runs
-# the segment load callback. The callback sends a command to the SegmentCacheManager actor
-# and waits for the answer, and it keeps the permit while it waits. The actor runs SQL of its
-# own, through Aggregation.optimizePredicates and RolapStar.Column.getCardinality, and that
-# SQL needs a permit too. When the permit holders wait for the actor, the actor waits for
-# them. The semaphore is fair, so each freed permit goes to the next queued loader thread,
-# which wedges in the same place. The wedged set only grows, and the engine never recovers.
+# Before the fix, SqlStatement.execute acquired a permit of the JVM wide, fair querySemaphore
+# before it ran the segment load callback. The callback sends a command to the SegmentCacheManager
+# actor and waits for the answer, so the thread kept the permit while it waited. The actor runs SQL
+# of its own, through Aggregation.optimizePredicates and RolapStar.Column.getCardinality, and that
+# SQL needs a permit too. When the permit holders wait for the actor, the actor waits for them.
+# The semaphore is fair, so each freed permit goes to the next queued loader thread, which wedges
+# in the same place. The wedged set only grows, and the engine never recovers. The fix acquires
+# the permit after the callback, so on the fixed code this soak must not latch.
 #
 # This test does not assert a result. It runs a parallel query load and watches the JVM for
 # the stack signature of the deadlock. It can miss, so a green run proves nothing. A red run
@@ -46,8 +47,9 @@ require_relative '../support/database_setup'
 java_import 'java.lang.management.ManagementFactory'
 java_import 'mondrian.rolap.RolapUtil'
 
-# Holds a permit for longer, so that the loader threads exhaust the semaphore. The hook runs
-# inside SqlStatement.execute, after the permit is acquired and before the callback.
+# Slows each segment load. Before the fix, the hook ran after the permit was acquired, so the
+# delay kept the permit for longer and the loader threads exhausted the semaphore. After the fix,
+# the hook runs before the acquisition, and the delay holds no permit.
 class SegmentDelayHook
   include Java::MondrianRolap::RolapUtil::ExecuteQueryHook
 

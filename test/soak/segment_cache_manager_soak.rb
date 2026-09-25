@@ -30,6 +30,8 @@ SOAK_QUERY_THREADS  = soak_int('SOAK_QUERY_THREADS', 40)
 SOAK_SEGMENT_DELAY  = soak_int('SOAK_SEGMENT_DELAY_MS', 200)
 SOAK_DETECT_SECONDS = soak_int('SOAK_DETECT_SECONDS', 5)
 SOAK_FLUSH_MS       = soak_int('SOAK_FLUSH_MS', 500)
+SOAK_HOLDERS        = soak_int('SOAK_HOLDER_THREADS', SOAK_QUERY_LIMIT)
+SOAK_HOLD_MS        = soak_int('SOAK_HOLD_MS', 200)
 SOAK_DUMP_PATH      = ENV['SOAK_DUMP_PATH'] || 'tmp/soak-threads.txt'
 
 # SqlStatement reads mondrian.query.limit once, when the class loads. Set every property
@@ -46,18 +48,31 @@ require_relative '../support/database_setup'
 
 java_import 'java.lang.management.ManagementFactory'
 java_import 'mondrian.rolap.RolapUtil'
+java_import 'mondrian.rolap.SqlStatement'
 
 # Slows each segment load. Before the fix, the hook ran after the permit was acquired, so the
 # delay kept the permit for longer and the loader threads exhausted the semaphore. After the fix,
 # the hook runs before the acquisition, and the delay holds no permit.
+#
+# The hook also counts the actor SQL that finds no free permit. The watchdog samples the threads
+# only every 0.5 seconds and misses most short waits, but the hook sees every actor query.
 class SegmentDelayHook
   include Java::MondrianRolap::RolapUtil::ExecuteQueryHook
 
-  def initialize(delay_ms)
+  attr_reader :actor_queries, :actor_contended
+
+  def initialize(delay_ms, semaphore)
     @delay_ms = delay_ms
+    @semaphore = semaphore
+    @actor_queries = java.util.concurrent.atomic.AtomicLong.new
+    @actor_contended = java.util.concurrent.atomic.AtomicLong.new
   end
 
   def onExecuteQuery(sql)
+    if java.lang.Thread.currentThread.getName.start_with?(DeadlockWatchdog::ACTOR_PREFIX)
+      @actor_queries.incrementAndGet
+      @actor_contended.incrementAndGet if @semaphore.availablePermits.zero?
+    end
     java.lang.Thread.sleep(@delay_ms) if @delay_ms.positive? && sql =~ /\bsum\(/i
   end
 end
@@ -160,7 +175,8 @@ class DeadlockWatchdog
     File.open(@dump_path, 'w') do |file|
       file.puts "Soak parameters: query_limit=#{SOAK_QUERY_LIMIT} " \
                 "actor_threads=#{SOAK_ACTOR_THREADS} query_threads=#{SOAK_QUERY_THREADS} " \
-                "segment_delay_ms=#{SOAK_SEGMENT_DELAY} driver=#{MONDRIAN_DRIVER}"
+                "segment_delay_ms=#{SOAK_SEGMENT_DELAY} holder_threads=#{SOAK_HOLDERS} " \
+                "hold_ms=#{SOAK_HOLD_MS} driver=#{MONDRIAN_DRIVER}"
       file.puts "Java: #{java.lang.System.getProperty('java.version')}"
       file.puts
       dump_all_threads.each { |i| file.puts i.to_s }
@@ -203,10 +219,16 @@ end.freeze
 
 puts "==> Soak: #{SOAK_SECONDS}s, query_limit=#{SOAK_QUERY_LIMIT}, " \
      "actor_threads=#{SOAK_ACTOR_THREADS}, query_threads=#{SOAK_QUERY_THREADS}, " \
-     "segment_delay_ms=#{SOAK_SEGMENT_DELAY}"
+     "segment_delay_ms=#{SOAK_SEGMENT_DELAY}, holder_threads=#{SOAK_HOLDERS}, " \
+     "hold_ms=#{SOAK_HOLD_MS}"
+
+semaphore_field = SqlStatement.java_class.getDeclaredField('querySemaphore')
+semaphore_field.setAccessible(true)
+query_semaphore = semaphore_field.get(nil)
 
 watchdog = DeadlockWatchdog.new(SOAK_DETECT_SECONDS, SOAK_DUMP_PATH).start
-RolapUtil.setHook(SegmentDelayHook.new(SOAK_SEGMENT_DELAY))
+hook = SegmentDelayHook.new(SOAK_SEGMENT_DELAY, query_semaphore)
+RolapUtil.setHook(hook)
 
 olap = Mondrian::OLAP::Connection.create(CONNECTION_PARAMS)
 deadline = Time.now + SOAK_SECONDS
@@ -228,6 +250,23 @@ rescue StandardError
   nil
 end
 
+# The fixed code frees the permit while the loader thread waits for the actor, so the loader
+# threads alone seldom use every permit. The holder threads take permits directly, so the actor
+# must wait for a permit whatever the order in SqlStatement.execute is. The fair semaphore then
+# gives the actor the next freed permit, and only a real cycle keeps it waiting.
+holders = Array.new(SOAK_HOLDERS) do
+  Thread.new do
+    while Time.now < deadline
+      query_semaphore.acquire
+      begin
+        sleep SOAK_HOLD_MS / 1000.0
+      ensure
+        query_semaphore.release
+      end
+    end
+  end
+end
+
 workers = Array.new(SOAK_QUERY_THREADS) do |i|
   Thread.new do
     n = i
@@ -244,12 +283,15 @@ workers = Array.new(SOAK_QUERY_THREADS) do |i|
 end
 
 workers.each(&:join)
+holders.each(&:join)
 flusher.join
 
 RolapUtil.setHook(nil)
 puts "==> Soak finished: #{queries.get} queries, #{flushes.get} schema flushes, " \
      "#{errors.get} query errors, no deadlock detected."
-puts format('==> Actor waited for a permit %d times, longest wait %.1fs (detection needs %ds).',
+puts "==> Actor ran #{hook.actor_queries.get} queries, #{hook.actor_contended.get} of them " \
+     "found no free permit."
+puts format('==> Watchdog saw the actor wait %d times, longest wait %.1fs (detection needs %ds).',
             watchdog.sightings, watchdog.max_persisted, SOAK_DETECT_SECONDS)
 puts '==> A green soak does not prove the defect is absent. It only means it did not latch.'
 
@@ -259,6 +301,12 @@ if queries.get.zero? || errors.get > queries.get || flushes.get.zero?
   warn "==> The soak did no useful work: #{queries.get} queries succeeded, " \
        "#{errors.get} failed and #{flushes.get} schema flushes completed. " \
        "Check the queries and the flush against the #{MONDRIAN_DRIVER} driver."
+  exit!(3)
+end
+
+# A soak in which the actor never waited for a permit did not test the race, however long it ran.
+if hook.actor_contended.get.zero?
+  warn "==> The actor never waited for a permit. Raise SOAK_HOLDER_THREADS or SOAK_HOLD_MS."
   exit!(3)
 end
 

@@ -251,11 +251,12 @@ puts format('==> Actor waited for a permit %d times, longest wait %.1fs (detecti
             watchdog.sightings, watchdog.max_persisted, SOAK_DETECT_SECONDS)
 puts '==> A green soak does not prove the defect is absent. It only means it did not latch.'
 
-# A soak that loaded no segments proves nothing and must not report success. It means the
-# queries do not run on this driver, not that the engine is sound.
-if queries.get.zero? || errors.get > queries.get
-  warn "==> The soak did no useful work: #{queries.get} queries succeeded and " \
-       "#{errors.get} failed. Check the queries against the #{MONDRIAN_DRIVER} driver."
+# A soak that loaded no segments, or never flushed the schema, proves nothing and must not
+# report success. Without a flush the column cardinalities stay known, and the actor runs no SQL.
+if queries.get.zero? || errors.get > queries.get || flushes.get.zero?
+  warn "==> The soak did no useful work: #{queries.get} queries succeeded, " \
+       "#{errors.get} failed and #{flushes.get} schema flushes completed. " \
+       "Check the queries and the flush against the #{MONDRIAN_DRIVER} driver."
   exit!(3)
 end
 

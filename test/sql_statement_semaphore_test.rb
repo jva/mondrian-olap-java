@@ -37,6 +37,28 @@ describe "SqlStatement and the query semaphore" do
     end
   end
 
+  # Records the free permit count when the segment loader writes a segment to the cache. The
+  # loader calls SegmentCache.put just before loadSucceeded puts the event in the bounded actor
+  # queue, and a full queue blocks the loader thread.
+  class PermitProbeCacheHandler
+    include java.lang.reflect.InvocationHandler
+
+    attr_reader :records
+
+    def initialize(delegate, semaphore)
+      @delegate = delegate
+      @semaphore = semaphore
+      @records = []
+    end
+
+    def invoke(_proxy, method, args)
+      @records << @semaphore.availablePermits if method.getName == "put"
+      args ? method.invoke(@delegate, *args.to_a) : method.invoke(@delegate)
+    rescue java.lang.reflect.InvocationTargetException => e
+      raise e.cause
+    end
+  end
+
   before(:all) do
     create_olap_connection
     @olap.execute("SELECT {[Measures].[Unit Sales]} ON 0 FROM [Sales]")
@@ -80,6 +102,46 @@ describe "SqlStatement and the query semaphore" do
       assert_equal total, permits,
         "A query permit is already held when the segment load hands over to the actor. " \
         "Holding it across the actor round trip is what makes the deadlock.\nSQL: #{sql}"
+    end
+  end
+
+  it "holds no query permit when the segment load sends the segment to the actor" do
+    semaphore = query_semaphore
+    total = semaphore.availablePermits
+
+    cache_control = rolap_connection.getCacheControl(nil)
+    cube = rolap_connection.getSchema.lookupCube("Sales", true)
+    cache_control.flush(cache_control.createMeasuresRegion(cube))
+
+    # SegmentCacheManager.compositeCache is final, so only reflection can put the probe there.
+    cache_mgr = rolap_connection.getServer.getAggregationManager.cacheMgr
+    cache_field = cache_mgr.java_class.getDeclaredField("compositeCache")
+    cache_field.setAccessible(true)
+    original = cache_field.get(cache_mgr)
+    handler = PermitProbeCacheHandler.new(original, semaphore)
+    probe = java.lang.reflect.Proxy.newProxyInstance(
+      original.getClass.getClassLoader,
+      [Java::MondrianSpi::SegmentCache.java_class].to_java(java.lang.Class),
+      handler
+    )
+
+    cache_field.set(cache_mgr, probe)
+    begin
+      @olap.execute(<<~MDX)
+        SELECT {[Measures].[Store Sales]} ON 0,
+               {[Time].[1997].[Q1].Children} ON 1
+        FROM [Sales]
+      MDX
+    ensure
+      cache_field.set(cache_mgr, original)
+    end
+
+    refute_empty handler.records, "expected the query to load a segment"
+
+    handler.records.each do |permits|
+      assert_equal total, permits,
+        "A query permit is still held when the segment load sends the segment to the actor. " \
+        "A full actor queue then blocks the permit holder"
     end
   end
 end

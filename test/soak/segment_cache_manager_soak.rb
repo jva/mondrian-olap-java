@@ -235,6 +235,8 @@ deadline = Time.now + SOAK_SECONDS
 queries = java.util.concurrent.atomic.AtomicLong.new
 errors = java.util.concurrent.atomic.AtomicLong.new
 flushes = java.util.concurrent.atomic.AtomicLong.new
+SOAK_ERROR_SAMPLES = 5
+error_samples = java.util.concurrent.ConcurrentLinkedQueue.new
 
 # The schema flush runs while the queries run, not between them. A flush leaves the column
 # cardinalities of the new star unknown, so the actor must run SQL for them. The flush has to
@@ -274,8 +276,10 @@ workers = Array.new(SOAK_QUERY_THREADS) do |i|
       begin
         olap.execute(QUERIES[n % QUERIES.size])
         queries.incrementAndGet
-      rescue StandardError
-        errors.incrementAndGet
+      rescue StandardError => e
+        if errors.incrementAndGet <= SOAK_ERROR_SAMPLES
+          error_samples.add("#{e.class}: #{e.message.gsub(/\s+/, ' ')[0, 400]}")
+        end
       end
       n += SOAK_QUERY_THREADS
     end
@@ -293,6 +297,7 @@ puts "==> Actor ran #{hook.actor_queries.get} queries, #{hook.actor_contended.ge
      "found no free permit."
 puts format('==> Watchdog saw the actor wait %d times, longest wait %.1fs (detection needs %ds).',
             watchdog.sightings, watchdog.max_persisted, SOAK_DETECT_SECONDS)
+error_samples.each { |sample| puts "==> Query error: #{sample}" }
 puts '==> A green soak does not prove the defect is absent. It only means it did not latch.'
 
 # A soak that loaded no segments, or never flushed the schema, proves nothing and must not

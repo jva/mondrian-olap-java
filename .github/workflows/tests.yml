@@ -105,6 +105,17 @@ jobs:
       - name: Soak the segment cache manager
         run: bundle exec rake test:soak
         timeout-minutes: 5
+      - name: Show the Oracle process and session use
+        if: always() && matrix.MONDRIAN_DRIVER == 'oracle'
+        run: |
+          "$ORACLE_HOME/bin/sqlplus" -L -S "system/$ORACLE_ADMIN_PASSWORD@localhost/XE" <<'SQL' || true
+          SET LINESIZE 200
+          COLUMN resource_name FORMAT A20
+          COLUMN limit_value FORMAT A12
+          SELECT resource_name, current_utilization, max_utilization, limit_value
+            FROM v$resource_limit WHERE resource_name IN ('processes', 'sessions');
+          SQL
+          sudo -E -u oracle "$ORACLE_HOME/bin/lsnrctl" services || true
       - name: Upload the soak thread dump
         if: failure()
         uses: actions/upload-artifact@v4

@@ -278,7 +278,10 @@ workers = Array.new(SOAK_QUERY_THREADS) do |i|
         queries.incrementAndGet
       rescue StandardError => e
         if errors.incrementAndGet <= SOAK_ERROR_SAMPLES
-          error_samples.add("#{e.class}: #{e.message.gsub(/\s+/, ' ')[0, 400]}")
+          # Mondrian::OLAP::Error#message is only the olap4j wrapper text. The cause is deeper.
+          cause = e.respond_to?(:root_cause) && e.root_cause ? e.root_cause : e
+          text = (e.respond_to?(:root_cause_message) && e.root_cause_message) || e.message
+          error_samples.add("#{cause.class}: #{text.to_s.gsub(/\s+/, ' ')[0, 400]}")
         end
       end
       n += SOAK_QUERY_THREADS

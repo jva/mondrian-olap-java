@@ -77,6 +77,39 @@ describe "SqlStatement and the query semaphore" do
     field.get(nil)
   end
 
+  let(:segment_mdx) do
+    <<~MDX
+      SELECT {[Measures].[Store Sales]} ON 0,
+             {[Time].[1997].[Q1].Children} ON 1
+      FROM [Sales]
+    MDX
+  end
+
+  def flush_sales_segments
+    cache_control = rolap_connection.getCacheControl(nil)
+    cube = rolap_connection.getSchema.lookupCube("Sales", true)
+    cache_control.flush(cache_control.createMeasuresRegion(cube))
+  end
+
+  # SegmentCacheManager.compositeCache is final, so only reflection can put the probe there.
+  def with_segment_cache_probe(semaphore)
+    cache_mgr = rolap_connection.getServer.getAggregationManager.cacheMgr
+    cache_field = cache_mgr.java_class.getDeclaredField("compositeCache")
+    cache_field.setAccessible(true)
+    original = cache_field.get(cache_mgr)
+    handler = PermitProbeCacheHandler.new(original, semaphore)
+    probe = java.lang.reflect.Proxy.newProxyInstance(
+      original.getClass.getClassLoader,
+      [Java::MondrianSpi::SegmentCache.java_class].to_java(java.lang.Class),
+      handler
+    )
+    cache_field.set(cache_mgr, probe)
+    yield
+    handler
+  ensure
+    cache_field&.set(cache_mgr, original)
+  end
+
   it "holds no query permit when the segment load hands over to the actor" do
     semaphore = query_semaphore
     total = semaphore.availablePermits
@@ -114,32 +147,8 @@ describe "SqlStatement and the query semaphore" do
     semaphore = query_semaphore
     total = semaphore.availablePermits
 
-    cache_control = rolap_connection.getCacheControl(nil)
-    cube = rolap_connection.getSchema.lookupCube("Sales", true)
-    cache_control.flush(cache_control.createMeasuresRegion(cube))
-
-    # SegmentCacheManager.compositeCache is final, so only reflection can put the probe there.
-    cache_mgr = rolap_connection.getServer.getAggregationManager.cacheMgr
-    cache_field = cache_mgr.java_class.getDeclaredField("compositeCache")
-    cache_field.setAccessible(true)
-    original = cache_field.get(cache_mgr)
-    handler = PermitProbeCacheHandler.new(original, semaphore)
-    probe = java.lang.reflect.Proxy.newProxyInstance(
-      original.getClass.getClassLoader,
-      [Java::MondrianSpi::SegmentCache.java_class].to_java(java.lang.Class),
-      handler
-    )
-
-    cache_field.set(cache_mgr, probe)
-    begin
-      @olap.execute(<<~MDX)
-        SELECT {[Measures].[Store Sales]} ON 0,
-               {[Time].[1997].[Q1].Children} ON 1
-        FROM [Sales]
-      MDX
-    ensure
-      cache_field.set(cache_mgr, original)
-    end
+    flush_sales_segments
+    handler = with_segment_cache_probe(semaphore) { @olap.execute(segment_mdx) }
 
     refute_empty handler.records, "expected the query to load a segment"
 
@@ -148,5 +157,39 @@ describe "SqlStatement and the query semaphore" do
         "A query permit is still held when the segment load sends the segment to the actor. " \
         "A full actor queue then blocks the permit holder"
     end
+  end
+
+  it "runs no segment SQL for a query that timed out while it waited for a permit" do
+    semaphore = query_semaphore
+    total = semaphore.availablePermits
+
+    # Load the members first, so that only the segment SQL waits for a permit below.
+    @olap.execute(segment_mdx)
+    flush_sales_segments
+
+    timeout = Java::MondrianOlap::MondrianProperties.instance.QueryTimeout
+    saved_timeout = timeout.get
+    timeout.set(1)
+    semaphore.acquire(total)
+    releaser = Thread.new do
+      sleep 2
+      semaphore.release(total)
+    end
+    begin
+      handler = with_segment_cache_probe(semaphore) do
+        assert_raises(Mondrian::OLAP::Error) { @olap.execute(segment_mdx) }
+        # The segment load runs on its own thread and outlives the timed out query. Keep the
+        # probe until that thread closes its statement.
+        releaser.join
+        deadline = Time.now + 10
+        sleep 0.05 until Java::MondrianUtil::Counters::SQL_STATEMENT_EXECUTING_IDS.isEmpty || Time.now > deadline
+      end
+    ensure
+      releaser.join
+      timeout.set(saved_timeout)
+    end
+
+    assert_empty handler.records,
+      "The query timed out while it waited for a permit, but it still ran its segment SQL"
   end
 end

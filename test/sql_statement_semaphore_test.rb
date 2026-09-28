@@ -19,6 +19,11 @@ java_import "mondrian.rolap.SqlStatement"
 #
 # The fix acquires the permit after the callback. No query runs while the callback waits, so
 # the permit covers only the query itself.
+#
+# SegmentLoader#load had the same cycle later in the load. It kept the statement open while
+# setDataToSegments put the segments in the bounded actor queue. A full queue blocked the
+# permit holder, and no actor drained the queue while it waited for a permit. The loader now
+# closes the statement after it copies the rows.
 describe "SqlStatement and the query semaphore" do
   # Records the free permit count where SqlStatement calls the hook. That call is the last
   # observable point before the segment load callback waits for the actor.

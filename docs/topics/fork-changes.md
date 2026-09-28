@@ -273,6 +273,11 @@ schemas can be served concurrently:
   cardinality SQL, so holding a permit across that wait deadlocked the engine.
   The permit now covers only the query itself, which is what
   `mondrian.query.limit` describes.
+- **`SegmentLoader`** — `load` closes the statement right after `processData`
+  copies the rows, before `setDataToSegments` sends the segments to the actor.
+  The actor queue is bounded, and a full queue blocks the sender. A sender that
+  still held its query permit deadlocked the engine when every actor thread
+  waited for a permit.
 - **`SmartMemberReader`** — the two fork-added lookup caches (§1.1) are
   `ConcurrentHashMap`s.
 - **`RolapMemberBase`** — the property-map factory produces

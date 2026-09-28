@@ -264,6 +264,11 @@ statement hygiene, not a cache flush, and shared segments survive it.
   holders waited for the actor, the actor waited for a permit, and the fair
   semaphore handed each freed permit to the next loader thread, which wedged in
   the same place. `test/soak/segment_cache_manager_soak.rb` reproduces it.
+  (fork PATCH) For the same reason, `SegmentLoader#load` closes the statement,
+  and so releases the permit, right after `processData` copies the rows. Only
+  then does `setDataToSegments` send the segments to the actor. The actor queue
+  holds 1000 messages, and a full queue blocks the sender. A sender that held a
+  permit made the same cycle when every actor thread waited for a permit.
 - **Readers never block.** The evaluation hot path touches only the
   thread-local `Bar`; shared structures reached outside the actor (pool maps,
   index registry, member caches) are concurrent maps and soft-reference

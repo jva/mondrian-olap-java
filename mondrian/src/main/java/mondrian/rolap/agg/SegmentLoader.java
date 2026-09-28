@@ -169,6 +169,12 @@ public class SegmentLoader {
       boolean[] axisContainsNull = new boolean[arity];
 
       RowList rows = processData( stmt, axisContainsNull, axisValueSets, groupingSetsList );
+      // PATCH: Close the statement, and so release the query permit, before setDataToSegments
+      // sends the segments to the SegmentCacheManager actor. The actor queue is bounded, so a
+      // full queue blocks the sender. When the actor waits for a permit, a sender that holds one
+      // makes a deadlock. The rows are already copied, and the close in the finally block does
+      // nothing for a closed statement.
+      stmt.close();
 
       boolean sparse = setAxisDataAndDecideSparseUse( axisValueSets, axisContainsNull, groupingSetsList, rows );
 

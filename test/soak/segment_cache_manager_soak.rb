@@ -230,7 +230,8 @@ watchdog = DeadlockWatchdog.new(SOAK_DETECT_SECONDS, SOAK_DUMP_PATH).start
 hook = SegmentDelayHook.new(SOAK_SEGMENT_DELAY, query_semaphore)
 RolapUtil.setHook(hook)
 
-olap = Mondrian::OLAP::Connection.create(CONNECTION_PARAMS)
+olap = java.util.concurrent.atomic.AtomicReference.new
+olap.set(Mondrian::OLAP::Connection.create(CONNECTION_PARAMS))
 deadline = Time.now + SOAK_SECONDS
 queries = java.util.concurrent.atomic.AtomicLong.new
 errors = java.util.concurrent.atomic.AtomicLong.new
@@ -238,13 +239,15 @@ flushes = java.util.concurrent.atomic.AtomicLong.new
 SOAK_ERROR_SAMPLES = 5
 error_samples = java.util.concurrent.ConcurrentLinkedQueue.new
 
-# The schema flush runs while the queries run, not between them. A flush leaves the column
-# cardinalities of the new star unknown, so the actor must run SQL for them. The flush has to
-# happen while the loader threads already hold every permit, or the actor gets a permit at
-# once and nothing wedges.
+# The schema flush runs while the queries run, not between them. Each RolapStar caches its
+# column cardinalities, and a connection keeps its schema after a flush. So the flusher opens a
+# new connection, and the query threads change to it. The new schema has new stars, so the
+# actor must run SQL for the cardinalities again. The flush has to happen while the loader
+# threads already hold every permit, or the actor gets a permit at once and nothing wedges.
 flusher = Thread.new do
   while Time.now < deadline
-    olap.flush_schema_cache
+    olap.get.flush_schema_cache
+    olap.set(Mondrian::OLAP::Connection.create(CONNECTION_PARAMS))
     flushes.incrementAndGet
     sleep SOAK_FLUSH_MS / 1000.0
   end
@@ -274,7 +277,7 @@ workers = Array.new(SOAK_QUERY_THREADS) do |i|
     n = i
     while Time.now < deadline
       begin
-        olap.execute(QUERIES[n % QUERIES.size])
+        olap.get.execute(QUERIES[n % QUERIES.size])
         queries.incrementAndGet
       rescue StandardError => e
         if errors.incrementAndGet <= SOAK_ERROR_SAMPLES

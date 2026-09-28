@@ -272,7 +272,9 @@ schemas can be served concurrently:
   `SegmentCacheManager` actor, and the actor needs a permit for its own
   cardinality SQL, so holding a permit across that wait deadlocked the engine.
   The permit now covers only the query itself, which is what
-  `mondrian.query.limit` describes.
+  `mondrian.query.limit` describes. After the permit wait, `execute` checks for
+  cancel and timeout again and only then starts the SQL timer, so a query that
+  times out in the permit queue runs no SQL, and the wait is not SQL time.
 - **`SegmentLoader`** — `load` closes the statement right after `processData`
   copies the rows, before `setDataToSegments` sends the segments to the actor.
   The actor queue is bounded, and a full queue blocks the sender. A sender that

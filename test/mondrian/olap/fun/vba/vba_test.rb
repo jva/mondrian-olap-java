@@ -463,7 +463,7 @@ describe "VBA functions" do
   it "datePart with 4 args" do
     sample = sample_date
     # 2008 starts on a Tuesday
-    # 2008-04-29 is a Thursday
+    # 2008-04-24 is a Thursday
     # That puts it in week 17 by most ways of computing weeks
     assert_equal 17, Vba.datePart("ww", sample, Calendar::SUNDAY, 0)
     assert_equal 17, Vba.datePart("ww", sample, Calendar::SUNDAY, 1)

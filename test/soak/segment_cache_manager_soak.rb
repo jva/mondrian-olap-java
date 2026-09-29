@@ -222,6 +222,31 @@ puts "==> Soak: #{SOAK_SECONDS}s, query_limit=#{SOAK_QUERY_LIMIT}, " \
      "segment_delay_ms=#{SOAK_SEGMENT_DELAY}, holder_threads=#{SOAK_HOLDERS}, " \
      "hold_ms=#{SOAK_HOLD_MS}"
 
+# A cell can come from a rollup of other cached segments, which adds the doubles in another
+# order. Compare numbers with a small relative tolerance, and everything else exactly.
+def soak_same_value?(expected, actual)
+  return expected == actual unless expected.is_a?(Numeric) && actual.is_a?(Numeric)
+
+  (expected - actual).abs <= 1e-9 * [expected.abs, actual.abs, 1].max
+end
+
+def soak_same_result?(expected, actual)
+  expected[0] == actual[0] && expected[1].flatten.size == actual[1].flatten.size &&
+    expected[1].flatten.zip(actual[1].flatten).all? { |e, a| soak_same_value?(e, a) }
+end
+
+def soak_snapshot(result)
+  [result.axis_full_names, result.values]
+end
+
+# The expected results come from one thread, before the load starts. FoodMart does not change
+# during the run, so every later result must match them. The flush after the pass drops the
+# segments and the schema, so the load still starts with a cold cache.
+expected_olap = Mondrian::OLAP::Connection.create(CONNECTION_PARAMS)
+EXPECTED = QUERIES.map { |mdx| soak_snapshot(expected_olap.execute(mdx)) }.freeze
+expected_olap.flush_schema_cache
+puts "==> Expected results ready for #{EXPECTED.size} queries."
+
 semaphore_field = SqlStatement.java_class.getDeclaredField('querySemaphore')
 semaphore_field.setAccessible(true)
 query_semaphore = semaphore_field.get(nil)
@@ -238,6 +263,8 @@ errors = java.util.concurrent.atomic.AtomicLong.new
 flushes = java.util.concurrent.atomic.AtomicLong.new
 SOAK_ERROR_SAMPLES = 5
 error_samples = java.util.concurrent.ConcurrentLinkedQueue.new
+wrong_results = java.util.concurrent.atomic.AtomicLong.new
+wrong_samples = java.util.concurrent.ConcurrentLinkedQueue.new
 
 # The schema flush runs while the queries run, not between them. Each RolapStar caches its
 # column cardinalities, and a connection keeps its schema after a flush. So the flusher opens a
@@ -277,8 +304,15 @@ workers = Array.new(SOAK_QUERY_THREADS) do |i|
     n = i
     while Time.now < deadline
       begin
-        olap.get.execute(QUERIES[n % QUERIES.size])
+        index = n % QUERIES.size
+        actual = soak_snapshot(olap.get.execute(QUERIES[index]))
         queries.incrementAndGet
+        unless soak_same_result?(EXPECTED[index], actual)
+          if wrong_results.incrementAndGet <= SOAK_ERROR_SAMPLES
+            wrong_samples.add("query #{index}: expected #{EXPECTED[index][1].inspect}, " \
+                              "got #{actual[1].inspect}")
+          end
+        end
       rescue StandardError => e
         if errors.incrementAndGet <= SOAK_ERROR_SAMPLES
           # Mondrian::OLAP::Error#message is only the olap4j wrapper text. The cause is deeper.
@@ -304,6 +338,8 @@ puts "==> Actor ran #{hook.actor_queries.get} queries, #{hook.actor_contended.ge
 puts format('==> Watchdog saw the actor wait %d times, longest wait %.1fs (detection needs %ds).',
             watchdog.sightings, watchdog.max_persisted, SOAK_DETECT_SECONDS)
 error_samples.each { |sample| puts "==> Query error: #{sample}" }
+puts "==> Wrong results: #{wrong_results.get} of #{queries.get} queries."
+wrong_samples.each { |sample| puts "==> Wrong result: #{sample[0, 600]}" }
 puts '==> A green soak does not prove the defect is absent. It only means it did not latch.'
 
 # A soak that loaded no segments, or never flushed the schema, proves nothing and must not
@@ -320,5 +356,8 @@ if hook.actor_contended.get.zero?
   warn "==> The actor never waited for a permit. Raise SOAK_HOLDER_THREADS or SOAK_HOLD_MS."
   exit!(3)
 end
+
+# A wrong result is a defect even when nothing deadlocks.
+exit!(4) if wrong_results.get.positive?
 
 exit!(0)

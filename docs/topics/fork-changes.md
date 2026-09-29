@@ -324,4 +324,4 @@ artifact is `mondrian-olap-java`.
   repo-root `test/` directory (run via `rake test`), which exercises the
   built JAR through the mondrian-olap gem (see `AGENTS.md`). The legacy Java
   tests are kept, but will be migrated over time to Minitest. These migrations
-  will delete the tests from Java suite without PATCH markers.
+  will delete the tests from the Java suite without PATCH markers.

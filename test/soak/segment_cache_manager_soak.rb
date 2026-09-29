@@ -11,9 +11,15 @@
 # in the same place. The wedged set only grows, and the engine never recovers. The fix acquires
 # the permit after the callback, so on the fixed code this soak must not latch.
 #
-# This test does not assert a result. It runs a parallel query load and watches the JVM for
-# the stack signature of the deadlock. It can miss, so a green run proves nothing. A red run
-# always means a real defect.
+# The soak runs a parallel query load, watches the JVM for the stack signature of the deadlock,
+# and compares every query result with a single thread pass. The deadlock detection can miss, so
+# a green run does not prove that the defect is absent. The exit status tells the outcome:
+#
+#   0  no deadlock and no wrong result
+#   1  deadlock detected, a real defect
+#   2  the watchdog itself failed, so the run is invalid
+#   3  the run did no useful work, so it is invalid and proves nothing
+#   4  a query result differs from the single thread pass, a real defect
 #
 # Parameters come from the environment, so that CI and a local sweep can use the same file.
 
@@ -271,6 +277,10 @@ wrong_samples = java.util.concurrent.ConcurrentLinkedQueue.new
 # new connection, and the query threads change to it. The new schema has new stars, so the
 # actor must run SQL for the cardinalities again. The flush has to happen while the loader
 # threads already hold every permit, or the actor gets a permit at once and nothing wedges.
+#
+# The retired connections stay open. Between queries a connection holds no JDBC connection,
+# because each statement borrows one from the shared pool, and a close would race the workers
+# that still run a query on it.
 flusher = Thread.new do
   while Time.now < deadline
     olap.get.flush_schema_cache

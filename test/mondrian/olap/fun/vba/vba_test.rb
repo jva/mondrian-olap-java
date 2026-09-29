@@ -596,7 +596,8 @@ describe "VBA functions" do
   it "timer" do
     v = Vba.timer
     assert v >= 0
-    assert v < 24 * 60 * 60
+    # The DST fall-back day in America/Los_Angeles has 25 hours.
+    assert v < 25 * 60 * 60
   end
 
   # Java: VbaTest#testWeekday1

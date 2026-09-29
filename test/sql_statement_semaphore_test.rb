@@ -182,7 +182,9 @@ describe "SqlStatement and the query semaphore" do
         # probe until that thread closes its statement.
         releaser.join
         deadline = Time.now + 10
-        sleep 0.05 until Java::MondrianUtil::Counters::SQL_STATEMENT_EXECUTING_IDS.isEmpty || Time.now > deadline
+        executing = Java::MondrianUtil::Counters::SQL_STATEMENT_EXECUTING_IDS
+        sleep 0.05 until executing.isEmpty || Time.now > deadline
+        assert_empty executing.to_a, "The segment load did not finish in time, so the probe cannot see its SQL"
       end
     ensure
       releaser.join

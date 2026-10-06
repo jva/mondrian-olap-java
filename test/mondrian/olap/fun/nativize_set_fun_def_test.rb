@@ -96,7 +96,7 @@ describe "NativizeSetFunDef" do
     begin
       native_result = format_result(@olap.execute(mdx))
 
-      assert_equal true, handler.evaluator_found, "Result should have been native"
+      assert_equal true, handler.evaluator_found, "Result should have been native\n#{native_state(registry)}"
       assert_equal interpreted, native_result,
         "Native implementation returned different result than interpreter; MDX=#{mdx}"
       assert_equal expected, native_result
@@ -104,6 +104,20 @@ describe "NativizeSetFunDef" do
       set_native_listener(registry, nil)
       set_native_hard_cache(registry, false)
     end
+  end
+
+  # Describes the native evaluation state, to explain a check_native failure
+  # that occurs only in some full suite runs.
+  def native_state(registry)
+    property_names = %i[EnableNativeCrossJoin EnableNativeNonEmpty EnableNativeFilter EnableNativeTopCount
+                        NativizeMinThreshold NativizeMaxResults EnableNonEmptyOnAllAxis UseAggregates
+                        ReadAggregates SsasCompatibleNaming ExpandNonNative LevelPreCacheThreshold
+                        IgnoreInvalidMembers IgnoreInvalidMembersDuringQuery ResultLimit]
+    properties = property_names.map { |name| "#{name}=#{mondrian_property(name).get}" }.join(", ")
+    schema = @olap.raw_mondrian_connection.getSchema
+    "Registry enabled: #{invoke_method(registry, 'isEnabled')}\n" \
+      "Schema: #{schema.getName} #{java.lang.System.identityHashCode(schema)}\n" \
+      "Properties: #{properties}"
   end
 
   # Parse MDX query and compare the toString() output to verify query rewriting.

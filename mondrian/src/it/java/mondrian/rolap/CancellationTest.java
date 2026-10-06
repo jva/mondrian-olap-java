@@ -13,7 +13,7 @@ import mondrian.calc.impl.UnaryTupleList;
 import mondrian.mdx.ResolvedFunCall;
 import mondrian.olap.*;
 import mondrian.olap.fun.CrossJoinFunDef;
-import mondrian.olap.fun.CrossJoinTest;
+import mondrian.olap.fun.NullFunDef;
 import mondrian.server.Execution;
 import mondrian.server.Locus;
 import mondrian.test.FoodMartTestCase;
@@ -28,7 +28,7 @@ public class CancellationTest extends FoodMartTestCase {
         // CrossJoinFunDef.nonEmptyList
         propSaver.set(propSaver.properties.CheckCancelOrTimeoutInterval, 1);
         CrossJoinFunDefTester crossJoinFunDef =
-                new CrossJoinFunDefTester(new CrossJoinTest.NullFunDef());
+                new CrossJoinFunDefTester(new NullFunDef());
         Result result =
             executeQuery("select store.[store name].members on 0 from sales");
         Evaluator eval = ((RolapResult) result).getEvaluator(new int[]{0});

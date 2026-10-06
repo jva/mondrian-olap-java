@@ -201,7 +201,7 @@ public class ResultStyleCompiler extends DelegatingExpCompiler {
 
         public Object evaluate(Evaluator evaluator) {
             // We have to make copies of the Evaluator because of
-            // the single test: NonEmptyTest.testVCNativeCJWithTopPercent
+            // the single test: "VC native CJ with top percent" in test/mondrian/rolap/non_empty_test.rb
             Evaluator eval1 = evaluator.push();
             Evaluator eval2 = evaluator.push();
             Object valueIter = calcIter.evaluate(evaluator);

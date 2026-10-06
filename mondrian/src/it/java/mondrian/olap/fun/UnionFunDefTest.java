@@ -77,7 +77,7 @@ public class UnionFunDefTest extends FoodMartTestCase {
     }
 
     CrossJoinFunDef crossJoinFunDef =
-        new CrossJoinFunDef(new CrossJoinTest.NullFunDef());
+        new CrossJoinFunDef(new NullFunDef());
     Exp[] expMock = new Exp[1];
     expMock[0] = mock(Exp.class);
     ResolvedFunCall resolvedFunCall =

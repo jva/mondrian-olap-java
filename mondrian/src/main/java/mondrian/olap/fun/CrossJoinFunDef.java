@@ -616,7 +616,9 @@ public class CrossJoinFunDef extends FunDefBase {
             }
             activeMeasures.remove( member );
           }
-        } else {
+        // PATCH: Skip the null measure of an ignored invalid member. It is not a base measure,
+        // and its value is always empty, so it cannot make a tuple non-empty.
+        } else if ( !member.isNull() ) {
           queryMeasureSet.add( member );
         }
       }
@@ -718,7 +720,8 @@ public class CrossJoinFunDef extends FunDefBase {
           Exp exp = m.getExpression();
           exp.accept( measureVisitor );
           exp.accept( memVisitor );
-        } else {
+        // PATCH: Skip the null measure, as in MeasureVisitor.process.
+        } else if ( !m.isNull() ) {
           measureSet.add( m );
         }
       }

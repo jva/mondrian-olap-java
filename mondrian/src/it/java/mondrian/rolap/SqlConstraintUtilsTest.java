@@ -47,7 +47,7 @@ import mondrian.olap.Query;
 import mondrian.olap.QueryAxis;
 import mondrian.olap.Syntax;
 import mondrian.olap.fun.AggregateFunDef;
-import mondrian.olap.fun.CrossJoinTest.NullFunDef;
+import mondrian.olap.fun.NullFunDef;
 import mondrian.olap.fun.ParenthesesFunDef;
 import mondrian.olap.fun.TestMember;
 import mondrian.olap.type.DecimalType;

@@ -36,10 +36,8 @@ import mondrian.olap.ParserTest;
 import mondrian.olap.QueryTest;
 import mondrian.olap.UtilTestCase;
 import mondrian.olap.fun.CachedExistsTest;
-import mondrian.olap.fun.CrossJoinTest;
 import mondrian.olap.fun.FunctionTest;
 import mondrian.olap.fun.IifFunDefTest;
-import mondrian.olap.fun.NativizeSetFunDefTest;
 import mondrian.olap.fun.PropertiesFunctionTest;
 import mondrian.olap.fun.SetFunDefTest;
 import mondrian.olap.fun.SortTest;
@@ -67,7 +65,6 @@ import mondrian.rolap.NativeEvalVirtualCubeTest;
 import mondrian.rolap.NativeFilterAgainstAggTableTest;
 import mondrian.rolap.NativeFilterMatchingTest;
 import mondrian.rolap.NonEmptyPropertyForAllAxisTest;
-import mondrian.rolap.NonEmptyTest;
 import mondrian.rolap.NumberSqlCompilerTest;
 import mondrian.rolap.OrderKeyOneToOneCheckTest;
 import mondrian.rolap.RestrictedMemberReaderTest;
@@ -388,7 +385,6 @@ public class Main extends TestSuite {
       addTest( suite, PrimeFinderTest.class );
       addTest( suite, CellKeyTest.class );
       addTest( suite, RolapAxisTest.class );
-      addTest( suite, CrossJoinTest.class );
       if ( Bug.BugMondrian503Fixed ) {
         addTest( suite, RolapResultTest.class );
       }
@@ -458,9 +454,7 @@ public class Main extends TestSuite {
         testNonEmpty = false;
       }
       if ( testNonEmpty ) {
-        addTest( suite, NonEmptyTest.class );
         addTest( suite, FilterTest.class );
-        addTest( suite, NativizeSetFunDefTest.class );
       } else {
         logger.warn( "skipping NonEmptyTests" );
       }

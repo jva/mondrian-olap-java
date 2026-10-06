@@ -8,11 +8,17 @@ require 'minitest/hooks/default'
 require 'pry'
 
 require_relative 'support/query_helper'
+require_relative 'support/mondrian_properties'
+require_relative 'support/schema_helper'
+require_relative 'support/native_registry_helper'
 
 Minitest::Reporters.use! Minitest::Reporters::DefaultReporter.new(color: true)
 
 class Minitest::Spec
   include QueryHelper
+  include MondrianPropertiesHelper
+  include SchemaHelper
+  include NativeRegistryHelper
 
   def assert_like(expected, actual, msg = nil)
     expected_normalized = expected.gsub(/>\s*\n\s*/, '> ').gsub(/\s+/, ' ').strip
@@ -35,5 +41,10 @@ class Minitest::Spec
 
   def create_olap_connection
     @olap = Mondrian::OLAP::Connection.create(CONNECTION_PARAMS)
+  end
+
+  # Mondrian builds the member SQL of a virtual cube with a plain UNION, and ClickHouse rejects it.
+  def skip_virtual_cube_union_on_clickhouse
+    skip "ClickHouse requires UNION ALL or UNION DISTINCT in virtual cube member SQL" if MONDRIAN_DRIVER == "clickhouse"
   end
 end

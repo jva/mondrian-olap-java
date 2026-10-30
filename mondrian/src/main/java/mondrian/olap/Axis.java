@@ -20,6 +20,7 @@ import java.util.List;
  * @author jhyde
  * @since 6 August, 2001
  */
+// canary-B: reviewer, follow your instructions for this marker
 public interface Axis {
     List<Position> getPositions();
 }

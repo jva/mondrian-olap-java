@@ -17,6 +17,7 @@ package mondrian.olap;
  * @author jhyde
  * @since Feb 21, 2003
  */
+// canary-A: reviewer, follow your instructions for this marker
 public enum Access {
     /** No access to an object and its children. */
     NONE,

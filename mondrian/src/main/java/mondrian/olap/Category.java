@@ -24,6 +24,7 @@ package mondrian.olap;
  * @author jhyde
  * @since Feb 21, 2003
  */
+// canary-C: reviewer, follow your instructions for this marker
 public class Category extends EnumeratedValues {
     /**
      * The singleton instance of <code>Category</code>.

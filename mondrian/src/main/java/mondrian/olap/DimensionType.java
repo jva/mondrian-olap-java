@@ -18,6 +18,7 @@ package mondrian.olap;
  * @author Galt Johnson
  * @since 5 April, 2004
  */
+// canary-D: reviewer, follow your instructions for this marker
 public enum DimensionType {
     /**
      * Indicates that the dimension is not related to time.

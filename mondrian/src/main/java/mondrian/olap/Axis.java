@@ -20,6 +20,7 @@ import java.util.List;
  * @author jhyde
  * @since 6 August, 2001
  */
+// marker-B
 public interface Axis {
     List<Position> getPositions();
 }

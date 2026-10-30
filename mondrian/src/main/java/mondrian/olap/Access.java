@@ -17,6 +17,7 @@ package mondrian.olap;
  * @author jhyde
  * @since Feb 21, 2003
  */
+// marker-A
 public enum Access {
     /** No access to an object and its children. */
     NONE,

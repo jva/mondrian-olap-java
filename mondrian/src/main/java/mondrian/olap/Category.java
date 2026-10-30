@@ -24,6 +24,7 @@ package mondrian.olap;
  * @author jhyde
  * @since Feb 21, 2003
  */
+// marker-C
 public class Category extends EnumeratedValues {
     /**
      * The singleton instance of <code>Category</code>.

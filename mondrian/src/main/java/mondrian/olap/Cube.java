@@ -19,6 +19,7 @@ import java.util.Set;
  *
  * @author jhyde, 2 March, 1999
  */
+// marker-F
 public interface Cube extends OlapElement, Annotated {
 
     String getName();

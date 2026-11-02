@@ -212,7 +212,9 @@ deltas.
   same cost, so the string overloads resolve only when an operand has the
   String category. Otherwise `<Value> + <Value>` matches both the numeric
   and the string `+` and fails with "More than one function matches
-  signature".
+  signature". `CoalesceEmpty` with a string argument has the String
+  category, so `CoalesceEmpty(<measure>, "0") + 1` concatenates (`9`
+  gives `91`) and `CoalesceEmpty(<measure>, 0) + 1` adds (`9` gives `10`).
   `RolapNativeSql` excludes a String-returning `+` from the numeric `+`
   SQL compiler. `FunCallSqlCompilerBase#match` compares categories bitwise
   and String (9) passes the Numeric (7) check, so a native Filter compiled

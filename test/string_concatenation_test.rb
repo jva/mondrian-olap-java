@@ -142,6 +142,15 @@ describe "String concatenation" do
     assert_expression_returns @olap, %q(1 + 2 + " units"), "3 units"
   end
 
+  # CoalesceEmpty with a string argument has the String type.
+  it "should concatenate CoalesceEmpty with a string fallback and a number with +" do
+    assert_expression_returns @olap, %q(CoalesceEmpty([Measures].[Unit Sales], "0") + 1), "2667731"
+  end
+
+  it "should add CoalesceEmpty with a numeric fallback and a number with +" do
+    assert_expression_returns @olap, "CoalesceEmpty([Measures].[Unit Sales], 0) + 1", "266,774"
+  end
+
   describe "with user-defined functions" do
     before(:all) do
       schema = define_schema do

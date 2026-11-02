@@ -2265,10 +2265,14 @@ public class BuiltinFunTable extends FunTableImpl {
                 return new BigDecimal(value.toString())
                     .stripTrailingZeros().toPlainString();
             }
-            // A whole number double converts exactly. Rounding it to 15
-            // significant digits drops the last digit of a 16 digit integer.
+            // A whole number double converts from its Double.toString form,
+            // as in DefaultFormatter. The exact binary value of a double
+            // above 2^53 adds digits: 1.234567e25 is
+            // 12345669999999999306366976. Rounding to 15 significant digits
+            // drops the last digit of a 16 digit integer.
             if (doubleValue == Math.rint(doubleValue)) {
-                return new BigDecimal(doubleValue).toPlainString();
+                return BigDecimal.valueOf(doubleValue)
+                    .stripTrailingZeros().toPlainString();
             }
             return new BigDecimal(doubleValue)
                 .round(DOUBLE_DECIMAL_DIGITS)

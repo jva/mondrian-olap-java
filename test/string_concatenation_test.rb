@@ -53,6 +53,17 @@ describe "String concatenation" do
     assert_equal "Sum: 1000000000000001", @olap.execute(mdx).formatted_values.flatten.first
   end
 
+  # A numeric literal is a BigDecimal. A product of doubles keeps a large whole number double.
+  it "should concatenate a large integral double without binary digits" do
+    mdx = <<~MDX
+      WITH MEMBER [Measures].[_Product] AS '1.234567e25 * 1.0'
+      MEMBER [Measures].[_Expr] AS '"Product: " + [Measures].[_Product]'
+      SELECT {[Measures].[_Expr]} ON 0
+      FROM [Sales]
+    MDX
+    assert_equal "Product: 12345670000000000000000000", @olap.execute(mdx).formatted_values.flatten.first
+  end
+
   it "should concatenate infinite and NaN measure values" do
     mdx = <<~MDX
       WITH MEMBER [Measures].[_Infinity] AS '1 / 0'

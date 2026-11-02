@@ -222,7 +222,9 @@ deltas.
   "Expected value of type STRING" for a numeric member value), converts a
   number to its plain decimal form without trailing zeros, an integral type
   and a `BigInteger` exactly, a `Float` from its `Float.toString` form, a
-  whole number double exactly and another double rounded to its 15
+  whole number double from its `Double.toString` form as `DefaultFormatter`
+  does (its exact binary value gave `12345669999999999306366976` for
+  `1.234567e25`) and another double rounded to its 15
   significant digits (the JDBC driver decides the Java type and the scale of a cell value, so
   `String.valueOf` gave `266773.0` on MySQL, `266773.0000` on PostgreSQL,
   `266773` on Oracle and `565238.1299999999` for a double sum). The result

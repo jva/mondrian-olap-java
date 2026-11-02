@@ -2231,7 +2231,7 @@ public class BuiltinFunTable extends FunTableImpl {
     // on PostgreSQL and a BigDecimal without a scale on Oracle. The plain
     // decimal form without trailing zeros is the same on every database.
     private static String toConcatenatedString(Object value) {
-        if (value == null || value == Util.nullValue) {
+        if (Util.isNull(value)) {
             return null;
         }
         // UdfResolver returns the exception of a failed user-defined function

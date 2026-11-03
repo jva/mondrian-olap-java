@@ -52,8 +52,33 @@ module QueryHelper
 
   # Assert that executing MDX raises a Mondrian error matching the pattern.
   # Pattern can be a Regexp or a String (substring match); assert_match handles both.
+  # The root cause has the Mondrian message, the outer message is generic.
   def assert_query_raises(olap, mdx, pattern)
     error = assert_raises(Mondrian::OLAP::Error) { olap.execute(mdx) }
-    assert_match pattern, error.message
+    assert_match pattern, error.root_cause_message
+  end
+
+  # Evaluate a scalar expression as in assert_expression_returns, and assert
+  # that it raises a Mondrian error matching the pattern.
+  def assert_expression_raises(olap, expression, pattern, cube: "Sales")
+    mdx = "WITH MEMBER [Measures].[_Expr] AS '#{expression}' SELECT {[Measures].[_Expr]} ON 0 FROM [#{cube}]"
+    assert_query_raises(olap, mdx, pattern)
+  end
+
+  # Unique names of the cube hierarchies that a scalar expression depends on,
+  # in cube order, as TestContext#assertExprDependsOn computes them.
+  def expression_dependencies(olap, expression, cube: "Sales")
+    query = olap.raw_mondrian_connection.parseQuery(
+      "WITH MEMBER [Measures].[_Expr] AS '#{expression}' SELECT FROM [#{cube}]"
+    )
+    query.resolve
+    calc = query.compileExpression(query.getFormulas[0].getExpression, true, nil)
+    query.getCube.getHierarchies.select { |hierarchy| calc.dependsOn(hierarchy) }.map(&:getUniqueName)
+  end
+
+  # Unique names of all hierarchies of a cube, in cube order.
+  def cube_hierarchy_names(olap, cube: "Sales")
+    olap.raw_mondrian_connection.getSchemaReader.getCubes.
+      find { |raw_cube| raw_cube.getName == cube }.getHierarchies.map(&:getUniqueName)
   end
 end

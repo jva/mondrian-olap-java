@@ -36,8 +36,15 @@ describe "Property reference role access" do
           end
         end
       end
+      role 'No Store' do
+        schema_grant access: 'none' do
+          cube_grant cube: 'Sales', access: 'all' do
+            hierarchy_grant hierarchy: '[Store]', access: 'none'
+          end
+        end
+      end
     end
-    @olap = Mondrian::OLAP::Connection.create(CONNECTION_PARAMS.except(:catalog).merge(schema: @schema))
+    @olap =Mondrian::OLAP::Connection.create(CONNECTION_PARAMS.except(:catalog).merge(schema: @schema))
   end
 
   after(:all) do
@@ -70,6 +77,11 @@ describe "Property reference role access" do
 
     it "should read the value of a measure through the VALUE property" do
       refute_nil calculated_value('[Measures].[Store Sales].[VALUE]')
+    end
+
+    it "should find the level of a property reference" do
+      error = assert_raises(Mondrian::OLAP::Error) { calculated_value('[Store].[Store State].[MEMBER_KEY]') }
+      assert_match(/No function matches signature '<Level>.MEMBER_KEY'/, error.root_cause_message)
     end
   end
 
@@ -107,6 +119,16 @@ describe "Property reference role access" do
       usa = unit_sales('[Store].[USA]')
       assert_equal unit_sales('[Store].[USA].[CA]') + unit_sales('[Store].[USA].[OR]'), usa
       assert_equal usa, calculated_value('[Store].[USA].[VALUE]')
+    end
+  end
+
+  describe "with a role that denies a hierarchy" do
+    before do
+      @olap.role_name = 'No Store'
+    end
+
+    it "should not resolve a property of a level of a denied hierarchy" do
+      assert_not_found '[Store].[Store State].[MEMBER_KEY]'
     end
   end
 end

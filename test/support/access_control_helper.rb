@@ -63,10 +63,10 @@ module AccessControlHelper
   # searches the full stack trace for the pattern.
   def error_chain_message(error)
     messages = []
-    e = error.respond_to?(:native_error) ? error.native_error : error
-    while e
-      messages << e.toString
-      e = e.respond_to?(:cause) ? e.cause : nil
+    exception = error.respond_to?(:native_error) ? error.native_error : error
+    while exception
+      messages << exception.toString
+      exception = exception.respond_to?(:cause) ? exception.cause : nil
     end
     messages.join("\n")
   end

@@ -232,22 +232,23 @@ describe "Access control" do
   # A role with access to one top-level employee of the HR cube, as the
   # PeopleRole class of the Java test defines it.
   def people_role(role, schema, rep_name)
-    people_role = role.makeMutableClone
-    people_role.grant(schema, Access::NONE)
+    mutable_role = role.makeMutableClone
+    mutable_role.grant(schema, Access::NONE)
     cube = schema.lookupCube("HR", true)
-    people_role.grant(cube, Access::ALL)
+    mutable_role.grant(cube, Access::ALL)
     hierarchy = cube.lookupHierarchy(OLAP_ID::NameSegment.new("Employees"), false)
     top_level = hierarchy.getLevels[1]
-    people_role.grant(hierarchy, Access::CUSTOM, nil, nil, ROLLUP_POLICY::FULL)
-    people_role.grant(hierarchy.getAllMember, Access::NONE)
+    mutable_role.grant(hierarchy, Access::CUSTOM, nil, nil, ROLLUP_POLICY::FULL)
+    mutable_role.grant(hierarchy.getAllMember, Access::NONE)
     members = schema.getSchemaReader.withLocus.getLevelMembers(top_level, true).select do |member|
       member.getUniqueName.include?("[#{rep_name}]")
     end
-    members.each { |member| people_role.grant(member, Access::ALL) }
+    members.each { |member| mutable_role.grant(member, Access::ALL) }
     refute_empty members
-    DelegatingRole.new(people_role)
+    DelegatingRole.new(mutable_role)
   end
 
+  # Java: AccessControlTest#testSchemaReader
   it "should give a schema reader without access control" do
     olap = foodmart_connection
     connection = olap.raw_mondrian_connection
@@ -259,6 +260,7 @@ describe "Access control" do
     refute_nil schema_reader2
   end
 
+  # Java: AccessControlTest#testGrantDimensionNone
   it "should hide a dimension with no access" do
     olap = foodmart_connection
     connection = olap.raw_mondrian_connection
@@ -274,6 +276,7 @@ describe "Access control" do
     assert_axis_raises(olap, "[Gender].children", "MDX object '[Gender]' not found in cube 'Sales'")
   end
 
+  # Java: AccessControlTest#testRestrictMeasures
   it "should restrict measures" do
     schema = foodmart_schema(role_defs: <<~'XML')
       <Role name="Role1">
@@ -323,6 +326,7 @@ describe "Access control" do
   end
 
   # MONDRIAN-2603
+  # Java: AccessControlTest#testRestrictMeasuresHierarchy_InTwoRoles
   it "should restrict the measures hierarchy in two cubes of one role" do
     schema = <<~'XML'
       <Schema name="FoodMart.DimAndMeasure.Role">
@@ -401,6 +405,7 @@ describe "Access control" do
     RESULT
   end
 
+  # Java: AccessControlTest#testRestrictLevelsAnalyzer3283
   it "should restrict levels in a union with a role without grants" do
     dimensions_def = <<~'XML'
           <Dimension visible="true" foreignKey="customer_id" highCardinality="false" name="Customers">
@@ -508,6 +513,7 @@ describe "Access control" do
     assert_equal 3, hierarchy_access.getBottomLevelDepth
   end
 
+  # Java: AccessControlTest#testRoleMemberAccessNonExistentMemberFails
   it "should fail when a role grants access to a member that does not exist" do
     assert_error_chain_includes("Member '[Store].[USA].[Non Existent]' not found") do
       role_connection(<<~'XML', 'Role1').execute("select {[Store].Children} on 0 from [Sales]")
@@ -524,6 +530,7 @@ describe "Access control" do
     end
   end
 
+  # Java: AccessControlTest#testRoleMemberAccess
   it "should give the member access of a role" do
     olap = restricted_connection
     # because CA has access
@@ -543,26 +550,31 @@ describe "Access control" do
     assert_member_access(olap, Access::NONE, "[Store].[All Stores]")
   end
 
+  # Java: AccessControlTest#testGrantHierarchy1a
   it "should return the accessible level members" do
     # Mexico is explicitly granted, Canada is explicitly denied, and USA is
     # the parent of the allowed member San Francisco.
     assert_axis_returns(restricted_connection, "[Store].level.members", "[Store].[Mexico]\n" + "[Store].[USA]")
   end
 
+  # Java: AccessControlTest#testGrantHierarchy1aAllMembers
   it "should return the accessible level members with allmembers" do
     assert_axis_returns(restricted_connection, "[Store].level.allmembers", "[Store].[Mexico]\n" + "[Store].[USA]")
   end
 
+  # Java: AccessControlTest#testGrantHierarchy1b
   it "should use the first accessible member as the default member" do
     # Mexico is explicitly granted, and it is the first accessible member.
     assert_axis_returns(restricted_connection, "[Store].defaultMember", "[Store].[Mexico]")
   end
 
+  # Java: AccessControlTest#testGrantHierarchy1c
   it "should use the first member of the top level as the default member" do
     # the root element is All Customers
     assert_axis_returns(restricted_connection, "[Customers].defaultMember", "[Customers].[Canada].[BC]")
   end
 
+  # Java: AccessControlTest#testGrantHierarchy2
   it "should return the parent of an allowed member" do
     # California is the parent of an allowed member.
     olap = restricted_connection
@@ -574,16 +586,19 @@ describe "Access control" do
     AXIS
   end
 
+  # Java: AccessControlTest#testGrantHierarchy3
   it "should not find a child of a denied member" do
     # Washington is a child of a denied member.
     assert_axis_raises(restricted_connection, "[Store].[USA].[WA]", "not found")
   end
 
+  # Java: AccessControlTest#testGrantHierarchy4
   it "should apply the member grants in order" do
     # Oregon is not accessible: the order of the grants matters.
     assert_axis_raises(restricted_connection, "[Store].[USA].[OR].children", "not found")
   end
 
+  # Java: AccessControlTest#testGrantHierarchy5
   it "should not find a member above the top level" do
     olap = restricted_connection
     assert_axis_raises(olap, "[Store].[All Stores]", "not found")
@@ -625,15 +640,18 @@ describe "Access control" do
     AXIS
   end
 
+  # Java: AccessControlTest#testGrantHierarchy6
   it "should give no parent at the top level" do
     assert_axis_returns(restricted_connection, "[Customers].[USA].[CA].parent", "")
   end
 
+  # Java: AccessControlTest#testGrantHierarchy7
   it "should not find members above the top level" do
     assert_axis_raises(restricted_connection, "[Customers].[Canada].children",
       "MDX object '[Customers].[Canada]' not found in cube 'Sales'")
   end
 
+  # Java: AccessControlTest#testGrantHierarchy8
   it "should not find members below the bottom level" do
     # Catherine Abel in San Francisco is below the bottom level.
     olap = restricted_connection
@@ -643,6 +661,7 @@ describe "Access control" do
     assert_equal 122, axis_position_count(olap, "[Customers].members")
   end
 
+  # Java: AccessControlTest#testGrantHierarchy8AllMembers
   it "should not find members below the bottom level with allmembers" do
     olap = restricted_connection
     assert_axis_raises(olap, "[Customers].[USA].[CA].[San Francisco].[Catherine Abel]", "not found")
@@ -653,6 +672,7 @@ describe "Access control" do
 
   # MONDRIAN-1201: native rollups did not handle access control with more
   # than one member with access="all".
+  # Java: AccessControlTest#testBugMondrian_1201_MultipleMembersInRoleAccessControl
   it "should apply a role with many member grants in native evaluation" do
     partial_rollup = role_connection(TEST_1201_ROLES, 'Role1')
     full_rollup = role_connection(TEST_1201_ROLES, 'Role2')
@@ -719,7 +739,7 @@ describe "Access control" do
     RESULT
   end
 
-  # MONDRIAN-2586
+  # Java: AccessControlTest#testBugMondrian_2586_RaggedDimMembersShouldBeVisible
   it "should show the members of a ragged dimension" do
     ragged_sales = role_connection(<<~'XML', 'Sales Ragged')
       <Role name="Sales Ragged">
@@ -749,6 +769,7 @@ describe "Access control" do
       RESULT
   end
 
+  # Java: AccessControlTest#testBugMondrian_1201_CacheAwareOfRoleAccessControl
   it "should not share the cache between roles with different member grants" do
     roles = <<~'XML'
       <Role name="Role1">
@@ -808,6 +829,7 @@ describe "Access control" do
   end
 
   # MONDRIAN-1127: native TopCount did not apply the user roles.
+  # Java: AccessControlTest#testBugMondrian1127OneSlicerOnly
   it "should apply the role in a native TopCount with one slicer member" do
     assert_query_returns(restricted_connection, <<~'MDX', <<~'RESULT')
       select NON EMPTY {[Measures].[Unit Sales]} ON COLUMNS,
@@ -848,6 +870,7 @@ describe "Access control" do
     RESULT
   end
 
+  # Java: AccessControlTest#testBugMondrian1127MultipleSlicers
   it "should apply the role in a native TopCount with many slicer members" do
     assert_query_returns(restricted_connection, <<~'MDX', <<~'RESULT')
       select NON EMPTY {[Measures].[Unit Sales]} ON COLUMNS,
@@ -891,6 +914,7 @@ describe "Access control" do
   end
 
   # Aggregate is only over SF and LA, also when a function calls it.
+  # Java: AccessControlTest#testGrantHierarchy9
   it "should aggregate only the accessible members in a function" do
     # Analysis services doesn't allow aggregation within calculated
     # measures, so use the following query to generate the results:
@@ -921,6 +945,7 @@ describe "Access control" do
     RESULT
   end
 
+  # Java: AccessControlTest#testGrantHierarchyA
   it "should include the missing cells in the totals" do
     # totals for USA include missing cells
     assert_query_returns(restricted_connection(restrict_customers: false), <<~'MDX', <<~'RESULT')
@@ -940,7 +965,7 @@ describe "Access control" do
     RESULT
   end
 
-  # The Java test is disabled (_testSharedObjectsInGrantMappingsBug).
+  # Java: AccessControlTest#_testSharedObjectsInGrantMappingsBug
   it "should not share objects in the grant mappings" do
     skip "Disabled in the Java test"
     olap = foodmart_connection
@@ -964,11 +989,13 @@ describe "Access control" do
     assert_expression_raises(olap, "[Store].DefaultMember", "'[Store]' not found in cube 'Sales'")
   end
 
+  # Java: AccessControlTest#testNoAccessToCube
   it "should not find a cube with no access" do
     assert_query_raises(restricted_connection(restrict_customers: false), "select from [HR]", "MDX cube 'HR' not found")
   end
 
   # Partial rollup policy: [USA] = [OR] + [WA], not the usual [CA] + [OR] + [WA].
+  # Java: AccessControlTest#testRollupPolicyBasic
   it "should apply the partial rollup policy" do
     assert_query_returns(rollup_connection, "select {[Store].[USA], [Store].[USA].Children} on 0\nfrom [Sales]",
       <<~'RESULT')
@@ -987,22 +1014,26 @@ describe "Access control" do
   # The total for [Store].[All Stores] is similarly reduced. All children of
   # [All Stores] are visible, but one grandchild is not. Normally the total is
   # 266,773.
+  # Java: AccessControlTest#testRollupPolicyAll
   it "should apply the partial rollup policy to the all member" do
     assert_expression_returns(rollup_connection, "([Store].[All Stores])", "192,025")
   end
 
   # [Store].[All Stores] is the default member of the [Stores] hierarchy.
+  # Java: AccessControlTest#testRollupPolicyAllAsDefault
   it "should apply the partial rollup policy to the default member" do
     assert_expression_returns(rollup_connection, "([Store])", "192,025")
   end
 
   # The Parent relationship does not go around the access control.
+  # Java: AccessControlTest#testRollupPolicyAllAsParent
   it "should apply the partial rollup policy to the parent member" do
     assert_expression_returns(rollup_connection, "([Store].[USA].Parent)", "192,025")
   end
 
   # MONDRIAN-1283: Mondrian doesn't restrict dimension members when the
   # dimension isn't included.
+  # Java: AccessControlTest#testUnusedAccessControlledDimension
   it "should apply an access-controlled dimension that the query does not use" do
     assert_query_returns(rollup_connection, "select [Gender].Children on 0 from [Sales]", <<~'RESULT')
       Axis #0:
@@ -1025,6 +1056,7 @@ describe "Access control" do
   end
 
   # Members below the bottom level are regarded as visible.
+  # Java: AccessControlTest#testRollupBottomLevel
   it "should include the members below the bottom level in the rollup" do
     [
       [ROLLUP_POLICY::FULL, "74,748", "36,759", "266,773"],
@@ -1058,6 +1090,7 @@ describe "Access control" do
     end
   end
 
+  # Java: AccessControlTest#testRollupPolicyNegative
   it "should fail with a bad rollup policy value" do
     assert_error_chain_includes("Illegal rollupPolicy value 'bad'") do
       role_connection(<<~'XML', 'Role1').execute("select from [Sales]")
@@ -1076,6 +1109,7 @@ describe "Access control" do
   end
 
   # All children are visible but a grandchild is not.
+  # Java: AccessControlTest#testRollupPolicyGreatGrandchildInvisible
   it "should apply the rollup policy when a great-grandchild is not visible" do
     [
       [ROLLUP_POLICY::FULL, "266,773", "74,748"],
@@ -1101,6 +1135,7 @@ describe "Access control" do
   end
 
   # Two hierarchies are access-controlled at the same time.
+  # Java: AccessControlTest#testRollupPolicySimultaneous
   it "should apply the rollup policy of two hierarchies at the same time" do
     # note that v2 is different for full vs partial, v3 is the same
     [
@@ -1133,6 +1168,7 @@ describe "Access control" do
     end
   end
 
+  # Java: AccessControlTest#testUnionRole
   it "should combine the access of a union role" do
     schema = foodmart_schema(role_defs: <<~'XML')
       <Role name="Role1">
@@ -1273,6 +1309,7 @@ describe "Access control" do
     check_query(olap, mdx)
   end
 
+  # Java: AccessControlTest#testUnionOfUnionRole
   it "should combine the access of a union of a union role" do
     role_defs = <<~'XML'
       <Role name="USA manager">
@@ -1317,6 +1354,7 @@ describe "Access control" do
   end
 
   # MONDRIAN-1384
+  # Java: AccessControlTest#testUnionRoleHasInaccessibleDescendants
   it "should find inaccessible descendants in a union role" do
     olap = role_connection(<<~'XML', 'Role1,Role2')
       <Role name="Role1">
@@ -1336,13 +1374,14 @@ describe "Access control" do
     connection = olap.raw_mondrian_connection
     cube = connection.getSchema.lookupCube("Sales", true)
     access_details = connection.getRole.getAccessDetails(cube.lookupHierarchy(name_segment("Customers"), false))
-    scr = cube.getSchemaReader(nil).withLocus
+    schema_reader = cube.getSchemaReader(nil).withLocus
     assert_equal true,
-      access_details.hasInaccessibleDescendants(scr.getMemberByUniqueName(parse_identifier("[Customers].[USA]"), true))
+      access_details.hasInaccessibleDescendants(schema_reader.getMemberByUniqueName(parse_identifier("[Customers].[USA]"), true))
   end
 
   # MONDRIAN-1168: a union of roles sometimes returned levels which the access
   # control restricts.
+  # Java: AccessControlTest#testRoleUnionWithLevelRestrictions
   it "should restrict the levels in a union role" do
     olap = role_connection(<<~'XML', 'Role1,Role2')
       <Role name="Role1">
@@ -1376,10 +1415,10 @@ describe "Access control" do
 
     connection = olap.raw_mondrian_connection
     reader = connection.getSchemaReader.withLocus
-    cube = reader.getCubes.find { |c| c.getName == "Sales" }
+    cube = reader.getCubes.find { |candidate_cube| candidate_cube.getName == "Sales" }
     refute_nil cube
     reader = cube.getSchemaReader(connection.getRole)
-    dimension = reader.getCubeDimensions(cube).find { |dim| dim.getName == "Customers" }
+    dimension = reader.getCubeDimensions(cube).find { |candidate_dimension| candidate_dimension.getName == "Customers" }
     refute_nil dimension
     hierarchy = reader.getDimensionHierarchies(dimension).get(0)
     refute_nil hierarchy
@@ -1414,6 +1453,7 @@ describe "Access control" do
   RESULT
 
   # MONDRIAN-369: Non Empty Crossjoin fails to enforce role access.
+  # Java: AccessControlTest#testNonEmptyAccess
   it "should apply the role in a non empty crossjoin" do
     olap = role_connection(PRODUCT_DRINK_ROLE, 'Role1')
 
@@ -1431,6 +1471,7 @@ describe "Access control" do
     check_query(olap, mdx2)
   end
 
+  # Java: AccessControlTest#testNonEmptyAccessLevelMembers
   it "should apply the role to level members in a non empty crossjoin" do
     olap = role_connection(PRODUCT_DRINK_ROLE, 'Role1')
 
@@ -1451,6 +1492,7 @@ describe "Access control" do
 
   # MONDRIAN-406: rollup policy doesn't work for members that are implicitly
   # visible.
+  # Java: AccessControlTest#testGoodman
   it "should apply the rollup policy to implicitly visible members" do
     query = <<~'MDX'
       select {[Measures].[Unit Sales]} ON COLUMNS,
@@ -1544,6 +1586,7 @@ describe "Access control" do
 
   # MONDRIAN-402: the access control elements for hierarchies with the same
   # name in different cubes could not be distinguished.
+  # Java: AccessControlTest#testBugMondrian402
   it "should distinguish the grants of hierarchies with the same name in different cubes" do
     olap = role_connection(<<~'XML', 'California manager')
       <Role name="California manager">
@@ -1561,6 +1604,7 @@ describe "Access control" do
     assert_hierarchy_access(olap, Access::CUSTOM, "Sales Ragged", "Store")
   end
 
+  # Java: AccessControlTest#testPartialRollupParentChildHierarchy
   it "should apply the partial rollup to a parent-child hierarchy" do
     olap = role_connection(<<~'XML', 'Buggy Role')
       <Role name="Buggy Role">
@@ -1606,6 +1650,7 @@ describe "Access control" do
     check_query(olap, mdx2)
   end
 
+  # Java: AccessControlTest#testParentChildUserDefinedRole
   it "should apply a user-defined role to a parent-child hierarchy" do
     olap = foodmart_connection
     connection = olap.raw_mondrian_connection
@@ -1647,6 +1692,7 @@ describe "Access control" do
   # BISERVER-1574: Cube role rollupPolicy='partial' failure. The problem was a
   # NullPointerException in SchemaReader#getMemberParent when called on the
   # members returned in a result set.
+  # Java: AccessControlTest#testBugBiserver1574
   it "should give the parent of a member of a result with the partial rollup policy" do
     olap = role_connection(BI_SERVER_1574_ROLE1, 'role1')
     mdx = "select {([Measures].[Store Invoice], [Store Size in SQFT].[All Store Size in SQFTs])} ON COLUMNS,\n" \
@@ -1665,6 +1711,7 @@ describe "Access control" do
 
   # MONDRIAN-435: Internal error in HierarchizeArrayComparator. It occurs when
   # Hierarchize applies to tuples on a hierarchy with partial rollup.
+  # Java: AccessControlTest#testBugMondrian435
   it "should hierarchize tuples of a hierarchy with the partial rollup policy" do
     olap = role_connection(BI_SERVER_1574_ROLE1, 'role1')
 
@@ -1842,6 +1889,7 @@ describe "Access control" do
 
   # MONDRIAN-436: SubstitutingMemberReader.getMemberBuilder gives
   # UnsupportedOperationException.
+  # Java: AccessControlTest#testBugMondrian436
   it "should give a member builder for a substituting member reader" do
     # Run with native enabled, then with whatever properties are set for
     # this test run.
@@ -1850,6 +1898,7 @@ describe "Access control" do
   end
 
   # MONDRIAN-456: hierarchy access control works on a virtual cube.
+  # Java: AccessControlTest#testVirtualCube
   it "should apply the hierarchy grants on a virtual cube" do
     olap = role_connection(<<~'XML', 'VCRole')
       <Role name="VCRole">
@@ -1899,6 +1948,7 @@ describe "Access control" do
   end
 
   # BISERVER-2491: rollupPolicy=partial and queries to upper members don't work.
+  # Java: AccessControlTest#testBugBiserver2491
   it "should query the upper members with the partial rollup policy" do
     olap = role_connection(<<~'XML', 'role2')
       <Role name="role2"> <SchemaGrant access="none">  <CubeGrant cube="Sales" access="all">   <HierarchyGrant hierarchy="[Store]" access="custom" rollupPolicy="partial">    <MemberGrant member="[Store].[USA].[CA]" access="all"/>    <MemberGrant member="[Store].[USA].[CA].[Los Angeles]" access="none"/>   </HierarchyGrant>  </CubeGrant> </SchemaGrant></Role>
@@ -1939,6 +1989,7 @@ describe "Access control" do
   end
 
   # MONDRIAN-622: Poor performance with large union role.
+  # Java: AccessControlTest#testBugMondrian622
   it "should execute a query with a large union role" do
     cube_name = "Sales with multiple customers"
     roles = +""
@@ -2004,6 +2055,7 @@ describe "Access control" do
 
   # MONDRIAN-694: Incorrect handling of child/parent relationship with
   # hierarchy grants.
+  # Java: AccessControlTest#testBugMondrian694
   it "should handle the child and parent relationship with hierarchy grants" do
     olap = role_connection(<<~'XML', 'REG1')
       <Role name="REG1">
@@ -2092,6 +2144,7 @@ describe "Access control" do
 
   # MONDRIAN-722: if ignoreInvalidMembers=true, should ignore grants with
   # invalid members.
+  # Java: AccessControlTest#testBugMondrian722
   it "should ignore the grants with invalid members" do
     with_mondrian_properties(IgnoreInvalidMembers: true) do
       olap = role_connection(<<~'XML', 'CTO')
@@ -2145,20 +2198,21 @@ describe "Access control" do
        [Store].[USA].[CA].[Foo]} on rows
       from [Sales]
     MDX
-    row_pos = result.getAxes[1].getPositions
-    member0 = row_pos.get(0).get(0)
+    row_positions = result.getAxes[1].getPositions
+    member0 = row_positions.get(0).get(0)
     assert_equal "CA", member0.getName
     assert_equal "Store State", member0.getLevel.getName
-    member1 = row_pos.get(1).get(0)
+    member1 = row_positions.get(1).get(0)
     assert_equal "Los Angeles", member1.getName
     assert_equal "Store City", member1.getLevel.getName
-    member2 = row_pos.get(2).get(0)
+    member2 = row_positions.get(2).get(0)
     assert_equal "Foo", member2.getName
     assert_equal "Store City", member2.getLevel.getName
   end
 
   # MONDRIAN-746: Report returns stack trace when turning on subtotals on a
   # hierarchy with top level hidden.
+  # Java: AccessControlTest#testCalcMemberLevel
   it "should give the level of a calculated member below a hidden top level" do
     check_calc_member_level(foodmart_connection)
     check_calc_member_level(role_connection(<<~'XML', 'Role1'))
@@ -2176,6 +2230,7 @@ describe "Access control" do
   # MONDRIAN-568: grants on OLAP elements are validated by name, thus
   # granting implicit access to all cubes which have a dimension with the
   # same name.
+  # Java: AccessControlTest#testBugMondrian568
   it "should not grant access to a measure of another cube with the same dimension name" do
     schema = foodmart_schema(role_defs: <<~'XML')
       <Role name="Role1">
@@ -2199,6 +2254,7 @@ describe "Access control" do
 
   # MONDRIAN-935: no results when some level members in a member grant have
   # no data.
+  # Java: AccessControlTest#testBugMondrian935
   it "should return results when some members of a member grant have no data" do
     olap = role_connection(<<~'XML', 'Role1')
       <Role name='Role1'>
@@ -2236,6 +2292,7 @@ describe "Access control" do
     RESULT
   end
 
+  # Java: AccessControlTest#testDimensionGrant
   it "should apply the dimension grants" do
     schema = foodmart_schema(role_defs: <<~'XML')
       <Role name="Role1">
@@ -2319,6 +2376,7 @@ describe "Access control" do
   # evaluator as a RestrictedMemberReader.MultiCardinalityDefaultMember.
   # RolapHierarchy.LimitedRollupSubstitutingMemberReader recognizes it and
   # uses the rollup policy of the parent member to generate the SQL.
+  # Java: AccessControlTest#testMondrian1030
   it "should roll up the accessible root members of a union role" do
     mdx1 = <<~'MDX'
       With
@@ -2504,6 +2562,7 @@ describe "Access control" do
   # constrained only at the current level with the partial rollup policy.
   # Example: a query on USA where only Los Angeles is accessible returned the
   # values for California instead of only Los Angeles.
+  # Java: AccessControlTest#testBugMondrian1030_2
   it "should constrain an upper level to the accessible members of a lower level" do
     olap = role_connection(<<~'XML', 'Bacon')
       <Role name="Bacon">
@@ -2531,6 +2590,7 @@ describe "Access control" do
   # MONDRIAN-1091: RoleImpl searched for member grants by object identity
   # rather than unique name. With the partial rollup policy the members are
   # wrapped, so identity checks failed.
+  # Java: AccessControlTest#testMondrian1091
   it "should find the member grants of wrapped members" do
     olap = role_connection(<<~'XML', 'Role1')
       <Role name="Role1">
@@ -2586,6 +2646,7 @@ describe "Access control" do
   # MONDRIAN-1259: Mondrian security: access leaks from one user to another.
   # Enhancements to the SmartRestrictedMemberReader caused security leaks
   # between roles and possible class cast exceptions.
+  # Java: AccessControlTest#testMondrian1259
   it "should not leak the access from one role to another" do
     mdx = "select non empty {[Store].Members} on columns from [Sales]"
     schema = foodmart_schema(role_defs: <<~'XML')
@@ -2655,6 +2716,7 @@ describe "Access control" do
     RESULT
   end
 
+  # Java: AccessControlTest#testMondrian1295
   it "should apply the partial rollup policy in a native crossjoin of the time hierarchy" do
     mdx = <<~'MDX'
       With
@@ -2719,6 +2781,7 @@ describe "Access control" do
     RESULT
   end
 
+  # Java: AccessControlTest#testMondrian936
   it "should give the same value for an aggregate in the slicer and in a calculated member" do
     olap = role_connection(<<~'XML', 'test')
       <Role name="test">
@@ -2785,6 +2848,7 @@ describe "Access control" do
     assert_equal value_agg_member, value_slicer_agg
   end
 
+  # Java: AccessControlTest#testMondrian1434
   it "should query a cube when the role restricts measures of another cube" do
     olap = role_connection(<<~'XML', 'dev')
       <Role name="dev">    <SchemaGrant access="all">      <CubeGrant cube="Sales" access="all">      </CubeGrant>      <CubeGrant cube="HR" access="all">      </CubeGrant>      <CubeGrant cube="Warehouse and Sales" access="all">         <HierarchyGrant hierarchy="Measures" access="custom">            <MemberGrant member="[Measures].[Warehouse Sales]" access="all">            </MemberGrant>         </HierarchyGrant>     </CubeGrant>  </SchemaGrant></Role>
@@ -2801,6 +2865,7 @@ describe "Access control" do
   # MONDRIAN-1486: with NECJ, RolapNativeCrossJoin.createEvaluator swapped the
   # LimitedRollupMember for the regular all member of the hierarchy, and
   # removed the security constraints.
+  # Java: AccessControlTest#testMondrian1486
   it "should keep the limited rollup member in a native crossjoin evaluator" do
     olap = role_connection(<<~'XML', 'Admin')
       <Role name="Admin">
@@ -2845,6 +2910,7 @@ describe "Access control" do
   # that is not the all member, and with and without an all member.
   # MONDRIAN-1568 showed different results with different rollup policies and
   # different default members.
+  # Java: AccessControlTest#testRollupPolicyWithNative
   it "should give the same native evaluation results with all rollup policies" do
     dimension = <<~'XML'
       <Dimension name="Store2">
@@ -2954,6 +3020,7 @@ describe "Access control" do
   end
 
   # MONDRIAN-1616
+  # Java: AccessControlTest#testValidMeasureWithRestrictedCubes
   it "should give a valid measure of a base cube with no access" do
     olap = role_connection(<<~'XML', 'noBaseCubes')
       <Role name="noBaseCubes">

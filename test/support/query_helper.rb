@@ -76,9 +76,14 @@ module QueryHelper
     query.getCube.getHierarchies.select { |hierarchy| calc.dependsOn(hierarchy) }.map(&:getUniqueName)
   end
 
-  # Unique names of all hierarchies of a cube, in cube order.
-  def cube_hierarchy_names(olap, cube: "Sales")
-    olap.raw_mondrian_connection.getSchemaReader.getCubes.
-      find { |raw_cube| raw_cube.getName == cube }.getHierarchies.map(&:getUniqueName)
+  # Hierarchies of the FoodMart Sales cube in cube order, as TestContext.AllHiers.
+  FOODMART_SALES_HIERARCHIES = [
+    "[Measures]", "[Store]", "[Store Size in SQFT]", "[Store Type]", "[Time]", "[Time.Weekly]", "[Product]",
+    "[Promotion Media]", "[Promotions]", "[Customers]", "[Education Level]", "[Gender]", "[Marital Status]",
+    "[Yearly Income]"
+  ].freeze
+
+  def all_hierarchies_except(*hierarchies)
+    FOODMART_SALES_HIERARCHIES - hierarchies
   end
 end

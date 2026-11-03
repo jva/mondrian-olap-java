@@ -44,7 +44,7 @@ describe "Property reference role access" do
         end
       end
     end
-    @olap =Mondrian::OLAP::Connection.create(CONNECTION_PARAMS.except(:catalog).merge(schema: @schema))
+    @olap = Mondrian::OLAP::Connection.create(CONNECTION_PARAMS.except(:catalog).merge(schema: @schema))
   end
 
   after(:all) do
@@ -72,11 +72,11 @@ describe "Property reference role access" do
 
   describe "without a role" do
     it "should read the value of a member through the VALUE property" do
-      assert_equal unit_sales('[Store].[USA].[WA]'), calculated_value('[Store].[USA].[WA].[VALUE]')
+      assert_equal 124_366, calculated_value('[Store].[USA].[WA].[VALUE]')
     end
 
     it "should read the value of a measure through the VALUE property" do
-      refute_nil calculated_value('[Measures].[Store Sales].[VALUE]')
+      assert_in_delta 565_238.13, calculated_value('[Measures].[Store Sales].[VALUE]'), 0.001
     end
 
     it "should find the level of a property reference" do
@@ -112,13 +112,13 @@ describe "Property reference role access" do
     end
 
     it "should resolve a property of a permitted member" do
-      assert_equal unit_sales('[Store].[USA].[CA]'), calculated_value('[Store].[USA].[CA].[VALUE]')
+      assert_equal 74_748, calculated_value('[Store].[USA].[CA].[VALUE]')
     end
 
+    # The partial rollup of USA is CA plus OR, not the full 266,773.
     it "should apply the partial rollup to a property of a member with partial access" do
-      usa = unit_sales('[Store].[USA]')
-      assert_equal unit_sales('[Store].[USA].[CA]') + unit_sales('[Store].[USA].[OR]'), usa
-      assert_equal usa, calculated_value('[Store].[USA].[VALUE]')
+      assert_equal 142_407, unit_sales('[Store].[USA]')
+      assert_equal 142_407, calculated_value('[Store].[USA].[VALUE]')
     end
   end
 

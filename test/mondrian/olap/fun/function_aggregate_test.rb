@@ -12,7 +12,21 @@ describe "Aggregate and Statistical Functions" do
   describe "Aggregate" do
     # Java: FunctionTest#testAggregateDepends
     it "depends on correct hierarchies" do
-      skip "assertExprDependsOn not yet available"
+      # Depends on everything except Measures, Gender
+      assert_equal all_hierarchies_except("[Measures]", "[Gender]"),
+        expression_dependencies(@olap, "([Measures].[Unit Sales], [Gender].[F])")
+      # Depends on everything except Customers, Gender
+      assert_equal all_hierarchies_except("[Customers]", "[Gender]"),
+        expression_dependencies(@olap, "Aggregate([Customers].Members, ([Measures].[Unit Sales], [Gender].[F]))")
+      # Depends on everything except Customers
+      assert_equal all_hierarchies_except("[Customers]"),
+        expression_dependencies(@olap, "Aggregate([Customers].Members)")
+      # Depends on the current member of the Product dimension, even though
+      # [Product].[All Products] is referenced from the expression.
+      assert_equal all_hierarchies_except("[Customers]"),
+        expression_dependencies(@olap,
+          "Aggregate(Filter([Customers].[City].Members, " \
+          "(([Measures].[Unit Sales] / ([Measures].[Unit Sales], [Product].[All Products])) > 0.1)))")
     end
 
     # Java: FunctionTest#testAggregate
@@ -263,7 +277,12 @@ describe "Aggregate and Statistical Functions" do
   describe "Count" do
     # Java: FunctionTest#testCount
     it "counts members including empty" do
-      # The depends-on assertions use assertExprDependsOn which is not available
+      assert_equal ["[Gender]"], expression_dependencies(@olap,
+        "count(Crossjoin([Store].[All Stores].[USA].Children, {[Gender].children}), INCLUDEEMPTY)")
+
+      assert_equal all_hierarchies_except("[Store]"), expression_dependencies(@olap,
+        "count(Crossjoin([Store].[All Stores].[USA].Children, {[Gender].children}), EXCLUDEEMPTY)")
+
       assert_expression_returns @olap,
         "count({[Promotion Media].[Media Type].members})", "14"
 
@@ -658,7 +677,7 @@ describe "Aggregate and Statistical Functions" do
         "[Measures].[Store Sales].VALUE", "565,238.13"
 
       # Depends upon almost everything.
-      assert_equal cube_hierarchy_names(@olap) - ["[Measures]"],
+      assert_equal all_hierarchies_except("[Measures]"),
         expression_dependencies(@olap, "[Measures].[Store Sales].VALUE")
 
       # We do not allow FORMATTED_VALUE.

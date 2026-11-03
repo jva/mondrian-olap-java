@@ -198,6 +198,45 @@ deltas.
   operands are compared by double value.
 - **`CoalesceEmptyFunDef`** — resolves DateTime and generic Value argument
   types in addition to Numeric and String.
+- **`BuiltinFunTable` string `+`** — registers a `MultiResolver` for `+`
+  with the signatures `iSSS`, `iSSn` and `iSnS` next to the numeric `+`.
+  `"a" + "b"` concatenates as in the Microsoft MDX dialect, and `"a" + 1`
+  and `1 + "a"` concatenate as in JavaScript, instead of failing with "No
+  function matches signature". `TypeUtil#canConvert` converts neither String
+  to Numeric nor Numeric to String, so the numeric overload keeps every
+  numeric and member operand pair. A member converts to String and to
+  Numeric, and `MultiResolver#resolve` returns the first matching signature,
+  so a string with a member resolves to `iSSS` and is not ambiguous. A Value
+  or Null operand, for example from `CoalesceEmpty`, from `Properties` with
+  a non-literal name or `NULL`, converts to Numeric and to String at the
+  same cost, so the string overloads resolve only when an operand has the
+  String category. Otherwise `<Value> + <Value>` matches both the numeric
+  and the string `+` and fails with "More than one function matches
+  signature". `CoalesceEmpty` with a string argument has the String
+  category, so `CoalesceEmpty(<measure>, "0") + 1` concatenates (`9`
+  gives `91`) and `CoalesceEmpty(<measure>, 0) + 1` adds (`9` gives `10`).
+  `RolapNativeSql` excludes a String-returning `+` from the numeric `+`
+  SQL compiler. `FunCallSqlCompilerBase#match` compares categories bitwise
+  and String (9) passes the Numeric (7) check, so a native Filter compiled
+  `("1" + "2") = "12"` to `(1 + 2) = 12`.
+  The `+` and `||` operators share `compileStringConcatenation`,
+  which compiles the operands as scalars (upstream `||` failed with
+  "Expected value of type STRING" for a numeric member value), converts a
+  number to its plain decimal form without trailing zeros, an integral type
+  and a `BigInteger` exactly, a `Float` from its `Float.toString` form, a
+  whole number double from its `Double.toString` form as `DefaultFormatter`
+  does (its exact binary value gave `12345669999999999306366976` for
+  `1.234567e25`) and another double rounded to its 15
+  significant digits (the JDBC driver decides the Java type and the scale of a cell value, so
+  `String.valueOf` gave `266773.0` on MySQL, `266773.0000` on PostgreSQL,
+  `266773` on Oracle and `565238.1299999999` for a double sum). The result
+  therefore differs from `Cast(<expr> AS String)` for a decimal with
+  trailing zeros: `Cast` gives `8.00`, the concatenation `8`. It converts
+  Infinity and NaN to `Infinity` and `NaN` (the `BigDecimal` constructor
+  throws for them and fails the whole query),
+  throws the exception which `UdfResolver` returns as the value of a failed
+  user-defined function (instead of concatenating the exception text), and
+  skips a null operand instead of rendering it as "null".
 - **`IsEmptyFunDef`** — registers DateTime overloads on both resolvers:
   `fbD` for the `IsEmpty(<expr>)` function form and `QbD` for the
   `<expr> IS EMPTY` postfix operator. `TypeUtil#canConvert` lets

@@ -11,6 +11,9 @@
 package mondrian.olap.fun;
 
 import java.io.PrintWriter;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.math.MathContext;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -56,6 +59,7 @@ import mondrian.olap.OlapElement;
 import mondrian.olap.Property;
 import mondrian.olap.SchemaReader;
 import mondrian.olap.Syntax;
+import mondrian.olap.Util;
 import mondrian.olap.Validator;
 import mondrian.olap.fun.extra.CachedExistsFunDef;
 import mondrian.olap.fun.extra.CalculatedChildFunDef;
@@ -1621,13 +1625,46 @@ public class BuiltinFunTable extends FunTableImpl {
         {
             public Calc compileCall(ResolvedFunCall call, ExpCompiler compiler)
             {
-                final StringCalc calc0 = compiler.compileString(call.getArg(0));
-                final StringCalc calc1 = compiler.compileString(call.getArg(1));
-                return new AbstractStringCalc(call, new Calc[] {calc0, calc1}) {
-                    public String evaluateString(Evaluator evaluator) {
-                        final String s0 = calc0.evaluateString(evaluator);
-                        final String s1 = calc1.evaluateString(evaluator);
-                        return s0 + s1;
+                return compileStringConcatenation(call, compiler);
+            }
+        });
+
+        // PATCH: <String Expression> + <String Expression> concatenates as in
+        // the Microsoft MDX dialect. A string with a number concatenates as
+        // well, as in JavaScript. String does not convert to Numeric, so the
+        // numeric "+" overload above keeps every numeric operand pair.
+        // A Value or Null operand converts to Numeric and to String at the
+        // same cost. The string overloads therefore resolve only when an
+        // operand is a string. Otherwise "<Value> + <Value>" matches both
+        // the numeric and the string "+" and fails as ambiguous.
+        // A member converts to String and to Numeric. MultiResolver returns
+        // the first matching signature, so a string with a member does not
+        // match "iSSS" and "iSSn" as two ambiguous overloads.
+        builder.define(
+            new MultiResolver(
+                "+",
+                "<String> + <String>",
+                "Concatenates two strings, or a string and a number.",
+                new String[] {"iSSS", "iSSn", "iSnS"})
+        {
+            public FunDef resolve(
+                Exp[] args,
+                Validator validator,
+                List<Conversion> conversions)
+            {
+                if (!hasStringOperand(args)) {
+                    return null;
+                }
+                return super.resolve(args, validator, conversions);
+            }
+
+            protected FunDef createFunDef(Exp[] args, FunDef dummyFunDef) {
+                return new FunDefBase(dummyFunDef) {
+                    public Calc compileCall(
+                        ResolvedFunCall call,
+                        ExpCompiler compiler)
+                    {
+                        return compileStringConcatenation(call, compiler);
                     }
                 };
             }
@@ -2142,6 +2179,106 @@ public class BuiltinFunTable extends FunTableImpl {
             }
             builder.define(funDef);
         }
+    }
+
+    // PATCH: Shared by the "||" operator and the string "+" operator. The
+    // operands are compiled as scalars, so a member or a number operand
+    // converts to a string instead of failing with "Expected value of type
+    // STRING". The toConcatenatedString method gives the same string on
+    // every database, so it differs from Cast(<expr> AS String) for a
+    // decimal with trailing zeros: Cast gives "8.00", concatenation "8".
+    // A null operand is skipped as in the Microsoft MDX dialect.
+    private static Calc compileStringConcatenation(
+        ResolvedFunCall call,
+        ExpCompiler compiler)
+    {
+        final Calc calc0 = compiler.compileScalar(call.getArg(0), false);
+        final Calc calc1 = compiler.compileScalar(call.getArg(1), false);
+        return new AbstractStringCalc(call, new Calc[] {calc0, calc1}) {
+            public String evaluateString(Evaluator evaluator) {
+                final String s0 =
+                    toConcatenatedString(calc0.evaluate(evaluator));
+                final String s1 =
+                    toConcatenatedString(calc1.evaluate(evaluator));
+                if (s0 == null) {
+                    return s1;
+                }
+                if (s1 == null) {
+                    return s0;
+                }
+                return s0 + s1;
+            }
+        };
+    }
+
+    private static boolean hasStringOperand(Exp[] args) {
+        for (Exp arg : args) {
+            if (arg.getCategory() == Category.String) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // A double carries 15 significant decimal digits. Rounding to them
+    // removes the binary representation error of a sum, for example
+    // 565238.1299999999 becomes 565238.13.
+    private static final MathContext DOUBLE_DECIMAL_DIGITS =
+        new MathContext(15);
+
+    // The JDBC driver decides the Java type and the scale of a cell value:
+    // the same sum is a Double on MySQL, a BigDecimal with the column scale
+    // on PostgreSQL and a BigDecimal without a scale on Oracle. The plain
+    // decimal form without trailing zeros is the same on every database.
+    private static String toConcatenatedString(Object value) {
+        if (Util.isNull(value)) {
+            return null;
+        }
+        // UdfResolver returns the exception of a failed user-defined function
+        // as its value. Throw it, so that the cell shows the error instead of
+        // the exception text.
+        if (value instanceof RuntimeException) {
+            throw (RuntimeException) value;
+        }
+        if (value instanceof BigDecimal) {
+            return ((BigDecimal) value).stripTrailingZeros().toPlainString();
+        }
+        // A BigInteger, for example from JDBC getObject for an unsigned
+        // 64-bit column, has more digits than a double can keep.
+        if (value instanceof Integer || value instanceof Long
+            || value instanceof Short || value instanceof Byte
+            || value instanceof BigInteger)
+        {
+            return value.toString();
+        }
+        if (value instanceof Number) {
+            final double doubleValue = ((Number) value).doubleValue();
+            // The BigDecimal constructor throws NumberFormatException for
+            // Infinity and NaN, and the exception fails the whole query.
+            // String.valueOf gives "Infinity" and "NaN" for them.
+            if (Double.isInfinite(doubleValue) || Double.isNaN(doubleValue)) {
+                return String.valueOf(value);
+            }
+            // Float.toString gives the shortest decimal form of a float. Its
+            // double value adds binary digits: 0.1f is 0.10000000149011612.
+            if (value instanceof Float) {
+                return new BigDecimal(value.toString())
+                    .stripTrailingZeros().toPlainString();
+            }
+            // A whole number double converts from its Double.toString form,
+            // as in DefaultFormatter. The exact binary value of a double
+            // above 2^53 adds digits: 1.234567e25 is
+            // 12345669999999999306366976. Rounding to 15 significant digits
+            // drops the last digit of a 16 digit integer.
+            if (doubleValue == Math.rint(doubleValue)) {
+                return BigDecimal.valueOf(doubleValue)
+                    .stripTrailingZeros().toPlainString();
+            }
+            return new BigDecimal(doubleValue)
+                .round(DOUBLE_DECIMAL_DIGITS)
+                .stripTrailingZeros().toPlainString();
+        }
+        return String.valueOf(value);
     }
 
     // PATCH: read skipJavaFunDefs from System directly so tests that toggle

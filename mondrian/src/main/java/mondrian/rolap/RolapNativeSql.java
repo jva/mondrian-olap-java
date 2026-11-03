@@ -644,9 +644,19 @@ public class RolapNativeSql {
         numericCompiler.add(new CalculatedMemberSqlCompiler(numericCompiler));
         numericCompiler.add(
             new ParenthesisSqlCompiler(Category.Numeric, numericCompiler));
+        // PATCH: The string "+" overload of BuiltinFunTable returns a String.
+        // FunCallSqlCompilerBase.match compares categories bitwise, and
+        // String (9) passes the Numeric (7) check. Without the exclusion the
+        // string "+" compiles to a numeric SQL addition.
         numericCompiler.add(
             new InfixOpSqlCompiler(
-                Category.Numeric, "+", "+", numericCompiler));
+                Category.Numeric, "+", "+", numericCompiler)
+            {
+                protected boolean match(Exp exp) {
+                    return exp.getCategory() != Category.String
+                        && super.match(exp);
+                }
+            });
         numericCompiler.add(
             new InfixOpSqlCompiler(
                 Category.Numeric, "-", "-", numericCompiler));

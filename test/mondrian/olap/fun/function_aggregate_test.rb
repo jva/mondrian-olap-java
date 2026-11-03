@@ -293,6 +293,9 @@ describe "Aggregate and Statistical Functions" do
 
     # Java: FunctionTest#testCountExcludeEmpty
     it "counts excluding empty with crossjoin" do
+      assert_equal all_hierarchies_except("[Store]"), expression_dependencies(@olap,
+        "count(Crossjoin([Store].[USA].Children, {[Gender].children}), EXCLUDEEMPTY)")
+
       assert_query_returns @olap, <<~MDX, <<~RESULT
         with member [Measures].[Promo Count] as
          ' Count(Crossjoin({[Measures].[Unit Sales]},

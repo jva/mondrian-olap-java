@@ -2918,30 +2918,6 @@ public class FunctionTest extends FoodMartTestCase {
     assertEquals( 0, result.getAxes()[ 0 ].getPositions().size() );
   }
 
-  public void testAggregateDepends() {
-    // Depends on everything except Measures, Gender
-    String s12 = TestContext.allHiersExcept( "[Measures]", "[Gender]" );
-    getTestContext().assertExprDependsOn(
-      "([Measures].[Unit Sales], [Gender].[F])", s12 );
-    // Depends on everything except Customers, Measures, Gender
-    String s13 = TestContext.allHiersExcept( "[Customers]", "[Gender]" );
-    getTestContext().assertExprDependsOn(
-      "Aggregate([Customers].Members, ([Measures].[Unit Sales], [Gender].[F]))",
-      s13 );
-    // Depends on everything except Customers
-    String s11 = TestContext.allHiersExcept( "[Customers]" );
-    getTestContext().assertExprDependsOn(
-      "Aggregate([Customers].Members)",
-      s11 );
-    // Depends on the current member of the Product dimension, even though
-    // [Product].[All Products] is referenced from the expression.
-    String s1 = TestContext.allHiersExcept( "[Customers]" );
-    getTestContext().assertExprDependsOn(
-      "Aggregate(Filter([Customers].[City].Members, (([Measures].[Unit Sales] / ([Measures].[Unit Sales], [Product]"
-        + ".[All Products])) > 0.1)))",
-      s1 );
-  }
-
   public void testAggregate() {
     assertQueryReturns(
       "WITH MEMBER [Store].[CA plus OR] AS 'AGGREGATE({[Store].[USA].[CA], [Store].[USA].[OR]})'\n"
@@ -3177,63 +3153,6 @@ public class FunctionTest extends FoodMartTestCase {
     assertExprReturns(
       "Correlation({[Store].[All Stores].[USA].children}, [Measures].[Unit Sales], [Measures].[Store Sales]) * 1000000",
       "999,906" );
-  }
-
-  public void testCount() {
-    getTestContext().assertExprDependsOn(
-      "count(Crossjoin([Store].[All Stores].[USA].Children, {[Gender].children}), INCLUDEEMPTY)",
-      "{[Gender]}" );
-
-    String s1 = TestContext.allHiersExcept( "[Store]" );
-    getTestContext().assertExprDependsOn(
-      "count(Crossjoin([Store].[All Stores].[USA].Children, "
-        + "{[Gender].children}), EXCLUDEEMPTY)",
-      s1 );
-
-    assertExprReturns(
-      "count({[Promotion Media].[Media Type].members})", "14" );
-
-    // applied to an empty set
-    assertExprReturns( "count({[Gender].Parent}, IncludeEmpty)", "0" );
-  }
-
-  public void testCountExcludeEmpty() {
-    String s1 = TestContext.allHiersExcept( "[Store]" );
-    getTestContext().assertExprDependsOn(
-      "count(Crossjoin([Store].[USA].Children, {[Gender].children}), EXCLUDEEMPTY)",
-      s1 );
-
-    assertQueryReturns(
-      "with member [Measures].[Promo Count] as \n"
-        + " ' Count(Crossjoin({[Measures].[Unit Sales]},\n"
-        + " {[Promotion Media].[Media Type].members}), EXCLUDEEMPTY)'\n"
-        + "select {[Measures].[Unit Sales], [Measures].[Promo Count]} on columns,\n"
-        + " {[Product].[Drink].[Beverages].[Carbonated Beverages].[Soda].children} on rows\n"
-        + "from Sales",
-      "Axis #0:\n"
-        + "{}\n"
-        + "Axis #1:\n"
-        + "{[Measures].[Unit Sales]}\n"
-        + "{[Measures].[Promo Count]}\n"
-        + "Axis #2:\n"
-        + "{[Product].[Drink].[Beverages].[Carbonated Beverages].[Soda].[Excellent]}\n"
-        + "{[Product].[Drink].[Beverages].[Carbonated Beverages].[Soda].[Fabulous]}\n"
-        + "{[Product].[Drink].[Beverages].[Carbonated Beverages].[Soda].[Skinner]}\n"
-        + "{[Product].[Drink].[Beverages].[Carbonated Beverages].[Soda].[Token]}\n"
-        + "{[Product].[Drink].[Beverages].[Carbonated Beverages].[Soda].[Washington]}\n"
-        + "Row #0: 738\n"
-        + "Row #0: 14\n"
-        + "Row #1: 632\n"
-        + "Row #1: 13\n"
-        + "Row #2: 655\n"
-        + "Row #2: 14\n"
-        + "Row #3: 735\n"
-        + "Row #3: 14\n"
-        + "Row #4: 647\n"
-        + "Row #4: 12\n" );
-
-    // applied to an empty set
-    assertExprReturns( "count({[Gender].Parent}, ExcludeEmpty)", "0" );
   }
 
   /**

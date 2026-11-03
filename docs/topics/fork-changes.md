@@ -238,6 +238,12 @@ deltas.
 - `UnionRoleImpl#getAccessDetails` (MONDRIAN-2641): the
   `CachingHierarchyAccess` wrapper for unions of >5 roles is disabled — the
   cache returned stale access decisions for union roles.
+- `Util#lookup` applies the role to the member or level of a property
+  reference such as `[Store].[USA].[WA].[VALUE]`. Upstream resolved it with
+  the reader without access control, so the `VALUE` property read the cell
+  of a denied member or measure, and the property error message showed that
+  a denied member exists. A member with partial access is substituted, so its
+  value is the partial rollup.
 - `RolapProperty` marks internal properties as `dependsOnLevelValue`.
 - `QueryTiming` guards the ms/invocation average against division by zero.
 - Cancellation: `CancellationChecker#checkCancelOrTimeout` checks the

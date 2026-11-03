@@ -1027,21 +1027,27 @@ public class Util extends XOMUtil {
                     lastSegment instanceof Id.NameSegment
                         ? ((Id.NameSegment) lastSegment).getName()
                         : null;
+                // PATCH: Apply the role to the member or level of a property
+                // reference, as to a direct reference. Otherwise
+                // [Denied Member].[VALUE] reads the cell of a denied member.
+                final Role role = schemaReader.getRole();
                 final Member member =
                     (Member) schemaReaderSansAc.lookupCompound(
                         cube, segmentsButOne, false, Category.Member);
                 if (member != null
+                    && role.canAccess(member)
                     && propertyName != null
                     && isValidProperty(propertyName, member.getLevel()))
                 {
                     return new UnresolvedFunCall(
                         propertyName, Syntax.Property, new Exp[] {
-                            createExpr(member)});
+                            createExpr(schemaReader.substitute(member))});
                 }
                 final Level level =
                     (Level) schemaReaderSansAc.lookupCompound(
                         cube, segmentsButOne, false, Category.Level);
                 if (level != null
+                    && role.canAccess(level)
                     && propertyName != null
                     && isValidProperty(propertyName, level))
                 {

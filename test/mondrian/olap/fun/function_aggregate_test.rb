@@ -657,21 +657,23 @@ describe "Aggregate and Statistical Functions" do
       assert_expression_returns @olap,
         "[Measures].[Store Sales].VALUE", "565,238.13"
 
-      # The depends-on assertion for VALUE uses assertExprDependsOn which is not available
+      # Depends upon almost everything.
+      assert_equal cube_hierarchy_names(@olap) - ["[Measures]"],
+        expression_dependencies(@olap, "[Measures].[Store Sales].VALUE")
 
       # We do not allow FORMATTED_VALUE.
-      assert_query_raises @olap,
-        "WITH MEMBER [Measures].[_Expr] AS '[Measures].[Store Sales].FORMATTED_VALUE' SELECT {[Measures].[_Expr]} ON 0 FROM [Sales]",
-        "mondrian gave exception while parsing query"
+      assert_expression_raises @olap,
+        "[Measures].[Store Sales].FORMATTED_VALUE",
+        "MDX object '[Measures].[Store Sales].FORMATTED_VALUE' not found in cube 'Sales'"
 
       assert_expression_returns @olap,
         "[Measures].[Store Sales].NAME", "Store Sales"
 
       # MS says that ID and KEY are standard member properties for
       # OLE DB for OLAP, but not for XML/A. We don't support them.
-      assert_query_raises @olap,
-        "WITH MEMBER [Measures].[_Expr] AS '[Measures].[Store Sales].ID' SELECT {[Measures].[_Expr]} ON 0 FROM [Sales]",
-        "mondrian gave exception while parsing query"
+      assert_expression_raises @olap,
+        "[Measures].[Store Sales].ID",
+        "MDX object '[Measures].[Store Sales].ID' not found in cube 'Sales'"
 
       # Error for KEY is slightly different than for ID. It doesn't matter
       # very much.
@@ -681,9 +683,9 @@ describe "Aggregate and Statistical Functions" do
       # "<MEMBER>.KEY" syntax because there is not function defined. For
       # other builtin properties, such as NAME, CAPTION there is a builtin
       # function.
-      assert_query_raises @olap,
-        "WITH MEMBER [Measures].[_Expr] AS '[Measures].[Store Sales].KEY' SELECT {[Measures].[_Expr]} ON 0 FROM [Sales]",
-        "mondrian gave exception while parsing query"
+      assert_expression_raises @olap,
+        "[Measures].[Store Sales].KEY",
+        "No function matches signature '<Member>.KEY'"
 
       assert_expression_returns @olap,
         "[Measures].[Store Sales].CAPTION", "Store Sales"

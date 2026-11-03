@@ -3544,43 +3544,6 @@ public class FunctionTest extends FoodMartTestCase {
       "SUM({[Promotion Media].[Media Type].members})", "266,773" );
   }
 
-  public void testValue() {
-    // VALUE is usually a cell property, not a member property.
-    // We allow it because MS documents it as a function, <Member>.VALUE.
-    assertExprReturns( "[Measures].[Store Sales].VALUE", "565,238.13" );
-
-    // Depends upon almost everything.
-    String s1 = TestContext.allHiersExcept( "[Measures]" );
-    getTestContext().assertExprDependsOn(
-      "[Measures].[Store Sales].VALUE", s1 );
-
-    // We do not allow FORMATTED_VALUE.
-    assertExprThrows(
-      "[Measures].[Store Sales].FORMATTED_VALUE",
-      "MDX object '[Measures].[Store Sales].FORMATTED_VALUE' not found in cube 'Sales'" );
-
-    assertExprReturns( "[Measures].[Store Sales].NAME", "Store Sales" );
-    // MS says that ID and KEY are standard member properties for
-    // OLE DB for OLAP, but not for XML/A. We don't support them.
-    assertExprThrows(
-      "[Measures].[Store Sales].ID",
-      "MDX object '[Measures].[Store Sales].ID' not found in cube 'Sales'" );
-
-    // Error for KEY is slightly different than for ID. It doesn't matter
-    // very much.
-    //
-    // The error is different because KEY is registered as a Mondrian
-    // builtin property, but ID isn't. KEY cannot be evaluated in
-    // "<MEMBER>.KEY" syntax because there is not function defined. For
-    // other builtin properties, such as NAME, CAPTION there is a builtin
-    // function.
-    assertExprThrows(
-      "[Measures].[Store Sales].KEY",
-      "No function matches signature '<Member>.KEY'" );
-
-    assertExprReturns( "[Measures].[Store Sales].CAPTION", "Store Sales" );
-  }
-
   public void testVar() {
     assertExprReturns(
       "VAR({[Store].[All Stores].[USA].children},[Measures].[Store Sales])",
